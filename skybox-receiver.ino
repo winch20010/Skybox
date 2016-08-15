@@ -29,6 +29,9 @@
 //Revision 4.0
 //August 12th 2016
 //Full revision of serial emergency stop procedure
+//Revision 4.1
+//August 15th 2016
+//Add STATUS variables
 
 #include <RH_ASK.h>
 #include <SPI.h> // Not actualy used but needed to compile
@@ -384,15 +387,21 @@ void serialEvent() {
       }
       else if (valSerial == "ETAT$") {
              
-	      if (switchFerme == LOW) {
-    	    Serial.println("FERME");
+        if (switchFerme == LOW) {
+          Serial.println("FERME$");
         }
-      	else if (switchOuvert == LOW) {
-        	Serial.println("OUVERT");
-      	}
-      	else {
-	        Serial.println("UNKNOWN");
-    	  }
+        else if (switchOuvert == LOW) {
+          Serial.println("OUVERT$");
+        }
+        else if (sensouverture) {
+          Serial.println("OUVERTURE$");
+        }
+        else if (sensfermeture) {
+          Serial.println("FERMETURE$");
+        }
+        else {
+          Serial.println("UNKNOWN$");
+        }
       }
       
       valSerial = "";
