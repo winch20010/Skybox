@@ -42,7 +42,7 @@ byte mac[] = { 0x90, 0xA2, 0xDA, 0x00, 0x92, 0x34 };
 
 // The default Arduino board address:
 byte ip[] = { 192, 168, 74, 17 };
-
+ 
 // Initialize the Ethernet server library
 // with the IP address and port you want to use
 // (port 80 is default for HTTP):
