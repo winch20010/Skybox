@@ -178,7 +178,7 @@ void loop()
   if (inputString == "OUVRIR$" && switchOuvert == HIGH ) { 
      
       sensouverture = true;
-      Serial.println("j ouvre");
+      //Serial.println("j ouvre");
       digitalWrite(RELAY1,LOW);
       digitalWrite(RELAY2,HIGH);
       control();
@@ -189,7 +189,7 @@ void loop()
   else if (inputString == "FERMER$" && switchFerme == HIGH) {
      
       sensfermeture = true;
-      Serial.println("je ferme");
+      //Serial.println("je ferme");
       digitalWrite(RELAY1,HIGH);
       digitalWrite(RELAY2,LOW);
       control();
@@ -199,6 +199,18 @@ void loop()
       else  if (inputString == "STOP$") {
       stop();
 
+    }
+    
+    else if (inputString == "ETAT$") {
+      if (switchFerme == LOW) {
+        Serial.println("FERME");
+      }
+      else if (switchOuvert == LOW) {
+        Serial.println("OUVERT")
+      }
+      else {
+        Serial.println("UNKNOWN")
+      }
     }
 
   }
@@ -331,9 +343,9 @@ void control(){
   
 
 
-  if (switchOuvert == 0) {
-    Serial.println("c est ouvert ...");
-  }
+ // if (switchOuvert == 0) {
+ //   Serial.println("c est ouvert ...");
+ // }
 
   if (buttonClose == LOW && buttonOpen == LOW ) {
    
@@ -377,7 +389,7 @@ void serialEvent() {
     // if the incoming character is a newline, set a flag
     // so the main loop can do something about it:
     if (inChar == '$' ) {
-      if (valSerial == "STOP$" || valSerial == "OUVRIR$" || valSerial == "FERMER$") {
+      if (valSerial == "STOP$" || valSerial == "OUVRIR$" || valSerial == "FERMER$" || valSerial =="ETAT$") {
         stringComplete = true;
         timemotor = millis() + 28000;
         inputString = valSerial;
