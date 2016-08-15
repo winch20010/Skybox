@@ -200,18 +200,6 @@ void loop()
       stop();
 
     }
-    
-    else if (inputString == "ETAT$") {
-      if (switchFerme == LOW) {
-        Serial.println("FERME");
-      }
-      else if (switchOuvert == LOW) {
-        Serial.println("OUVERT");
-      }
-      else {
-        Serial.println("UNKNOWN");
-      }
-    }
   }
   // check which pushbutton is pressed.
 
@@ -388,12 +376,25 @@ void serialEvent() {
     // if the incoming character is a newline, set a flag
     // so the main loop can do something about it:
     if (inChar == '$' ) {
-      if (valSerial == "STOP$" || valSerial == "OUVRIR$" || valSerial == "FERMER$" || valSerial =="ETAT$") {
+      if (valSerial == "STOP$" || valSerial == "OUVRIR$" || valSerial == "FERMER$" ) {
         stringComplete = true;
         timemotor = millis() + 28000;
         inputString = valSerial;
         valSerial = "";
       }
+      else if (valSerial == "ETAT$") {
+             
+	      if (switchFerme == LOW) {
+    	    Serial.println("FERME");
+        }
+      	else if (switchOuvert == LOW) {
+        	Serial.println("OUVERT");
+      	}
+      	else {
+	        Serial.println("UNKNOWN");
+    	  }
+      }
+      
       valSerial = "";
     }
   }
