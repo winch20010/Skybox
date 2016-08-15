@@ -261,16 +261,38 @@ Public Class Dome
     End Property
 
     Public ReadOnly Property AtHome() As Boolean Implements IDomeV2.AtHome
-        Get
-            TL.LogMessage("AtHome", "Not implemented")
-            Throw New ASCOM.PropertyNotImplementedException("AtHome", False)
+               Get
+	        	objSerial.Transmit("STATE$")
+	        	Dim status As String
+	        	domeStatus = objSerial.ReceiveTerminated("$")
+	        	domeStatus = domeStatus.Replace("$","")
+	        	Return String(domeSstatus)
+	        	
+	            TL.LogMessage("CanSyncAzimuth Get", False.ToString())
+	            
+	            If (domeStatus == "FERMER") Then
+	                TL.LogMessage("ShutterStatus", ShutterState.shutterClosed.ToString())
+	                Return ShutterState.shutterClosed
+	                       
+	            End If
         End Get
     End Property
 
     Public ReadOnly Property AtPark() As Boolean Implements IDomeV2.AtPark
-        Get
-            TL.LogMessage("AtPark", "Not implemented")
-            Throw New ASCOM.PropertyNotImplementedException("AtPark", False)
+                Get
+ 	        	objSerial.Transmit("STATE$")
+ 	        	Dim status As String
+ 	        	domeStatus = objSerial.ReceiveTerminated("$")
+ 	        	domeStatus = domeStatus.Replace("$","")
+ 	        	Return String(domeSstatus)
+ 	        	
+ 	            TL.LogMessage("CanSyncAzimuth Get", False.ToString())
+ 	            
+ 	            If (domeStatus == "FERMER") Then
+ 	                TL.LogMessage("ShutterStatus", ShutterState.shutterClosed.ToString())
+ 	                Return ShutterState.shutterClosed
+ 	                       
+ 	            End If
         End Get
     End Property
 
@@ -361,8 +383,10 @@ Public Class Dome
     End Sub
 
     Public Sub Park() Implements IDomeV2.Park
-        TL.LogMessage("Park", "Not implemented")
-        Throw New ASCOM.MethodNotImplementedException("Park")
+        Dim s As String = "FERMER$"
+        objSerial.Transmit(s)
+        TL.LogMessage("ShutterStatus", ShutterState.shutterClosing.ToString())
+        Return ShutterState.shutterClosing
     End Sub
 
     Public Sub SetPark() Implements IDomeV2.SetPark
@@ -382,10 +406,10 @@ Public Class Dome
             If (domeStatus == "OUVERT") Then
                 TL.LogMessage("ShutterStatus", ShutterState.shutterOpen.ToString())
                 Return ShutterState.shutterOpen
-            Else If (domeStatus == "FERMER") Then
+            ElseIf (domeStatus == "FERMER") Then
                 TL.LogMessage("ShutterStatus", ShutterState.shutterClosed.ToString())
                 Return ShutterState.shutterClosed
-            Else If (domeStatus == "UNKNOWN") Then
+            ElseIf (domeStatus == "UNKNOWN") Then
                 TL.LogMessage("ShutterStatus", ShutterState.shutterError.ToString())
                 Return ShutterState.shutterError
             
