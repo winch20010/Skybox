@@ -131,7 +131,7 @@ void setup()
   Serial.println("Version 4.0");
   
   Serial.println("setup()");
-  
+ 
     ///////////////ETHERNET//////////////////
     if (Ethernet.begin(mac) == 0) {
     // if DHCP fails, start with a hard-coded address:
