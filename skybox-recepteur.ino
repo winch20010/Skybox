@@ -206,13 +206,12 @@ void loop()
         Serial.println("FERME");
       }
       else if (switchOuvert == LOW) {
-        Serial.println("OUVERT")
+        Serial.println("OUVERT");
       }
       else {
-        Serial.println("UNKNOWN")
+        Serial.println("UNKNOWN");
       }
     }
-
   }
   // check which pushbutton is pressed.
 
