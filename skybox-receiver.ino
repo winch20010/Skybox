@@ -29,7 +29,7 @@
 //Revision 4.0
 //August 12th 2016
 //Full revision of serial emergency stop procedure
-
+ 
 #include <RH_ASK.h>
 #include <SPI.h> // Not actualy used but needed to compile
 #include <Ethernet.h>
