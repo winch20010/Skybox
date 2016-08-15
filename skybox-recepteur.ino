@@ -379,7 +379,7 @@ void serialEvent() {
     if (inChar == '$' ) {
       if (valSerial == "STOP$" || valSerial == "OUVRIR$" || valSerial == "FERMER$") {
         stringComplete = true;
-        timemotor = millis() + 27000;
+        timemotor = millis() + 28000;
         inputString = valSerial;
         valSerial = "";
       }
