@@ -3,12 +3,12 @@ Astro project for my Observatory
 
 The aim of this project is to control my observatory with Arduino Hardwares.
 
-SkyBox recepteur manages :
+SkyBox receiver manages :
 - roll over roof
 - send data received from the transmitters to a sql database
 
 
-SkyBox emetteur manages : 
+SkyBox transmitter manages : 
 - different sensors like : 
 -   Air temperature
 -   Sky temperature
