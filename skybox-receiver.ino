@@ -106,6 +106,7 @@ unsigned long timemotor;
 char temperature[6];
 char combinedArray;
 char post[] = "POST /observatory/add.php HTTP/1.1";
+char post2[] = "POST /observatory/safety.php HTTP/1.1";
 
 String data1 = "";
 String valSerial;
@@ -116,6 +117,7 @@ boolean sensfermeture = false;
 
 String inputString = "";         // a string to hold incoming data
 boolean stringComplete = false;  // whether the string is complete
+boolean safety = false;
 
 //////////////////////////////////////////////
 
@@ -268,8 +270,17 @@ void loop()
   double tempambient = myData.temp_ambient;
   double tempsol = myData.temp;
   double mysqm = myData.sqmval;
-
-
+  
+  if ((mysqm >= 100) || (detecpluid > 10) || (tempciel >= -10)) {
+   
+   char safety[] = "nosafe";
+   iptrans(post2; safety);
+  }
+else {
+   char safety[] = "safe";
+   iptrans(post2; safety);
+ 
+}
   //Convert variables in String
   // 4 is mininum width, 2 is precision; float value is copied onto str_temp
   dtostrf(tempcield, 5, 2, str_temp);
