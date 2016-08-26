@@ -231,11 +231,7 @@ void loop()
     digitalWrite(RELAY2,LOW);
   } 
 
-  ///////////////ETHERNET//////////////////////
 
-  EthernetClient client = server.available();
- 
-  /////////////////////////////////////////////
 
   ////////////RF433 SECTION/////////////////////
   uint8_t buf[RH_ASK_MAX_MESSAGE_LEN];
@@ -271,14 +267,14 @@ void loop()
   double tempsol = myData.temp;
   double mysqm = myData.sqmval;
   
-  if ((mysqm >= 100) || (detecpluid > 10) || (tempciel >= -10) || (switchOuvert == HIGH)) {
+  if ((mysqm >= 100) || (detecpluid > 10) || (tempcield >= -10) || (switchOuvert == HIGH)) {
    
    safety = "nosafe";
-   iptrans(post2; safety);
+   iptrans(post2, safety);
   }
 else {
    safety = "safe";
-   iptrans(post2; safety);
+   iptrans(post2, safety);
  
 }
   //Convert variables in String
@@ -370,6 +366,11 @@ void stop() {
 }
 
 void iptrans(char post[], char combinedArray[]) {
+    ///////////////ETHERNET//////////////////////
+
+  EthernetClient client = server.available();
+ 
+  /////////////////////////////////////////////
      if (client.connect("192.168.74.5",83)) { // REPLACE WITH YOUR SERVER ADDRESS
  
       client.println(post); 
