@@ -117,7 +117,7 @@ boolean sensfermeture = false;
 
 String inputString = "";         // a string to hold incoming data
 boolean stringComplete = false;  // whether the string is complete
-boolean safety = false;
+char* safety = "nosafe";
 
 //////////////////////////////////////////////
 
@@ -273,11 +273,11 @@ void loop()
   
   if ((mysqm >= 100) || (detecpluid > 10) || (tempciel >= -10)) {
    
-   char safety[] = "nosafe";
+   safety = "nosafe";
    iptrans(post2; safety);
   }
 else {
-   char safety[] = "safe";
+   safety = "safe";
    iptrans(post2; safety);
  
 }
@@ -369,7 +369,7 @@ void stop() {
     stringComplete = false;
 }
 
-void iptrans(char port[], char combinedArray[]) {
+void iptrans(char post[], char combinedArray[]) {
      if (client.connect("192.168.74.5",83)) { // REPLACE WITH YOUR SERVER ADDRESS
  
       client.println(post); 
