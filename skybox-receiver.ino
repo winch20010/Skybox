@@ -271,7 +271,7 @@ void loop()
   double tempsol = myData.temp;
   double mysqm = myData.sqmval;
   
-  if ((mysqm >= 100) || (detecpluid > 10) || (tempciel >= -10)) {
+  if ((mysqm >= 100) || (detecpluid > 10) || (tempciel >= -10) || (switchOuvert == HIGH)) {
    
    safety = "nosafe";
    iptrans(post2; safety);
