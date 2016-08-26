@@ -32,6 +32,10 @@
 //Revision 4.1
 //August 15th 2016
 //Add STATUS variables
+//Revision 4.2
+//August 26th 2016
+//Add FaileStatus checks
+
 
 #include <RH_ASK.h>
 #include <SPI.h> // Not actualy used but needed to compile
@@ -101,6 +105,7 @@ unsigned long timemotor;
 
 char temperature[6];
 char combinedArray;
+char post[] = "POST /observatory/add.php HTTP/1.1";
 
 String data1 = "";
 String valSerial;
@@ -131,7 +136,7 @@ void setup()
   
   Serial.begin(9600); // Debugging only
   Serial.flush();
-  Serial.println("Version 4.0");
+  Serial.println("Version 4.2");
   
   Serial.println("setup()");
   
@@ -294,25 +299,8 @@ void loop()
 
     time2 += 120000;
     Serial.println("ca envoie");
+    iptrans(post, combinedArray);
 
-    if (client.connect("192.168.74.5",83)) { // REPLACE WITH YOUR SERVER ADDRESS
- 
-      client.println("POST /observatory/add.php HTTP/1.1"); 
-      client.println("Host: 192.168.74.5"); // SERVER ADDRESS HERE TOO
-      client.println("Content-Type: application/x-www-form-urlencoded"); 
-      client.print("Content-Length: "); 
-      client.println(strlen(combinedArray)); 
-      client.println(); 
-      client.print(combinedArray); 
-      client.println();
-   
-    } 
-
-    //Disconnect
-
-    if (client.connected()) { 
-      client.stop();  // DISCONNECT FROM THE SERVER
-    }
   }
 
 }
@@ -368,6 +356,27 @@ void stop() {
     sensfermeture = false;
     inputString = "";
     stringComplete = false;
+}
+
+void iptrans(char port[], char combinedArray[]) {
+     if (client.connect("192.168.74.5",83)) { // REPLACE WITH YOUR SERVER ADDRESS
+ 
+      client.println(post); 
+      client.println("Host: 192.168.74.5"); // SERVER ADDRESS HERE TOO
+      client.println("Content-Type: application/x-www-form-urlencoded"); 
+      client.print("Content-Length: "); 
+      client.println(strlen(combinedArray)); 
+      client.println(); 
+      client.print(combinedArray); 
+      client.println();
+   
+    } 
+
+    //Disconnect
+
+    if (client.connected()) { 
+      client.stop();  // DISCONNECT FROM THE SERVER
+    }
 }
 
 void serialEvent() {
