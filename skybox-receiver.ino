@@ -122,7 +122,7 @@ boolean gotdata = false;
 
 String inputString = "";         // a string to hold incoming data
 boolean stringComplete = false;  // whether the string is complete
-char* safety = "safety=nosafe";
+char safety[] = "safety=nosafe";
 
 //////////////////////////////////////////////
 
@@ -244,7 +244,7 @@ void loop()
 
   if (driver.recv(buf, &buflen)) {
     gotdata = true;
-
+Serial.println("jerecois");
     // Message with a good checksum received, dump it.
     driver.printBuffer("Got:", buf, buflen);
     if (buflen == 24) {
@@ -274,7 +274,7 @@ void loop()
   
   if  (gotdata) {
     
-         if (((mysqm <= 100) || (detecpluid < 10) || (tempcield <= -10)) || ((switchFerme == HIGH)&&(switchOuvert == LOW))) {
+         if (((mysqm <= 2) || (detecpluid < 1) || (tempcield <= -10)) || ((switchFerme == HIGH)&&(switchOuvert == LOW))) {
    
    sprintf(safety, "%s%s", "safety=", "safe");
    iptrans(post2, safety);
@@ -285,6 +285,7 @@ void loop()
    iptrans(post2, safety);
     gotdata = false;
    }
+   Serial.println(safety);
   }
   
   //Convert variables in String
