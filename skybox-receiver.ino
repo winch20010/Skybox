@@ -122,7 +122,7 @@ boolean gotdata = false;
 
 String inputString = "";         // a string to hold incoming data
 boolean stringComplete = false;  // whether the string is complete
-char* safety = "nosafe";
+char* safety = "safety=nosafe";
 
 //////////////////////////////////////////////
 
@@ -275,12 +275,12 @@ void loop()
   if  (gotdata) {
          if (((mysqm <= 100) || (detecpluid < 10) || (tempcield <= -10)) || ((switchFerme == HIGH)&&(switchOuvert == LOW))) {
    
-   safety = "safe";
+   safety = "safety=safe";
    iptrans(post2, safety);
    gotdata = false;
          }
   else {
-   safety = "nosafe";
+   safety = "safety=nosafe";
    iptrans(post2, safety);
     gotdata = false;
    }
