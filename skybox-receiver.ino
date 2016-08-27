@@ -96,6 +96,7 @@ int switchFerme = 0;
 int minutes = 90;
 
 
+
 unsigned long time1;
 unsigned long time2;
 unsigned long timemotor;
@@ -114,6 +115,7 @@ String valSerial;
 boolean button = false;
 boolean sensouverture = false;
 boolean sensfermeture = false;
+boolean gotdata = false;
 
 String inputString = "";         // a string to hold incoming data
 boolean stringComplete = false;  // whether the string is complete
@@ -238,7 +240,7 @@ void loop()
   uint8_t buflen = sizeof(buf);
 
   if (driver.recv(buf, &buflen)) {
-    int i;
+    gotdata = true;
 
     // Message with a good checksum received, dump it.
     driver.printBuffer("Got:", buf, buflen);
@@ -267,15 +269,16 @@ void loop()
   double tempsol = myData.temp;
   double mysqm = myData.sqmval;
   
-  if ((mysqm >= 100) || (detecpluid > 10) || (tempcield >= -10) || (switchOuvert == HIGH)) {
+  if ( (gotdata) && ((mysqm <= 100) || (detecpluid < 10) || (tempcield <= -10) || ((switchFerme == HIGH)&&(switchOuvert == LOW)))) {
    
-   safety = "nosafe";
-   iptrans(post2, safety);
-  }
-else {
    safety = "safe";
    iptrans(post2, safety);
- 
+   gotdata = false;
+  }
+else {
+   safety = "nosafe";
+   iptrans(post2, safety);
+    gotdata = false;
 }
   //Convert variables in String
   // 4 is mininum width, 2 is precision; float value is copied onto str_temp
