@@ -35,6 +35,9 @@
 //Revision 4.2
 //August 26th 2016
 //Add FaileStatus checks
+//Revision 4.3
+//August 27th 2016
+//Review safety code and bug fixes
 
 
 #include <RH_ASK.h>
@@ -140,7 +143,7 @@ void setup()
   
   Serial.begin(9600); // Debugging only
   Serial.flush();
-  Serial.println("Version 4.2");
+  Serial.println("Version 4.3");
   
   Serial.println("setup()");
   
@@ -269,17 +272,20 @@ void loop()
   double tempsol = myData.temp;
   double mysqm = myData.sqmval;
   
-  if ( (gotdata) && ((mysqm <= 100) || (detecpluid < 10) || (tempcield <= -10) || ((switchFerme == HIGH)&&(switchOuvert == LOW)))) {
+  if  (gotdata) {
+         if (((mysqm <= 100) || (detecpluid < 10) || (tempcield <= -10)) || ((switchFerme == HIGH)&&(switchOuvert == LOW))) {
    
    safety = "safe";
    iptrans(post2, safety);
    gotdata = false;
-  }
-else {
+         }
+  else {
    safety = "nosafe";
    iptrans(post2, safety);
     gotdata = false;
-}
+   }
+  }
+  
   //Convert variables in String
   // 4 is mininum width, 2 is precision; float value is copied onto str_temp
   dtostrf(tempcield, 5, 2, str_temp);
