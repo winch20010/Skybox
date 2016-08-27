@@ -32,6 +32,10 @@
 //Revision 4.1
 //August 15th 2016
 //Add STATUS variables
+//Revision 4.2
+//August 26th 2016
+//Add FaileStatus checks
+
 
 #include <RH_ASK.h>
 #include <SPI.h> // Not actualy used but needed to compile
@@ -92,6 +96,7 @@ int switchFerme = 0;
 int minutes = 90;
 
 
+
 unsigned long time1;
 unsigned long time2;
 unsigned long timemotor;
@@ -101,6 +106,8 @@ unsigned long timemotor;
 
 char temperature[6];
 char combinedArray;
+char post[] = "POST /observatory/add.php HTTP/1.1";
+char post2[] = "POST /observatory/safety.php HTTP/1.1";
 
 String data1 = "";
 String valSerial;
@@ -108,9 +115,11 @@ String valSerial;
 boolean button = false;
 boolean sensouverture = false;
 boolean sensfermeture = false;
+boolean gotdata = false;
 
 String inputString = "";         // a string to hold incoming data
 boolean stringComplete = false;  // whether the string is complete
+char* safety = "nosafe";
 
 //////////////////////////////////////////////
 
@@ -131,7 +140,7 @@ void setup()
   
   Serial.begin(9600); // Debugging only
   Serial.flush();
-  Serial.println("Version 4.0");
+  Serial.println("Version 4.2");
   
   Serial.println("setup()");
   
@@ -224,18 +233,14 @@ void loop()
     digitalWrite(RELAY2,LOW);
   } 
 
-  ///////////////ETHERNET//////////////////////
 
-  EthernetClient client = server.available();
- 
-  /////////////////////////////////////////////
 
   ////////////RF433 SECTION/////////////////////
   uint8_t buf[RH_ASK_MAX_MESSAGE_LEN];
   uint8_t buflen = sizeof(buf);
 
   if (driver.recv(buf, &buflen)) {
-    int i;
+    gotdata = true;
 
     // Message with a good checksum received, dump it.
     driver.printBuffer("Got:", buf, buflen);
@@ -263,8 +268,18 @@ void loop()
   double tempambient = myData.temp_ambient;
   double tempsol = myData.temp;
   double mysqm = myData.sqmval;
-
-
+  
+  if ( (gotdata) && ((mysqm <= 100) || (detecpluid < 10) || (tempcield <= -10) || ((switchFerme == HIGH)&&(switchOuvert == LOW)))) {
+   
+   safety = "safe";
+   iptrans(post2, safety);
+   gotdata = false;
+  }
+else {
+   safety = "nosafe";
+   iptrans(post2, safety);
+    gotdata = false;
+}
   //Convert variables in String
   // 4 is mininum width, 2 is precision; float value is copied onto str_temp
   dtostrf(tempcield, 5, 2, str_temp);
@@ -294,25 +309,8 @@ void loop()
 
     time2 += 120000;
     Serial.println("ca envoie");
+    iptrans(post, combinedArray);
 
-    if (client.connect("192.168.74.5",83)) { // REPLACE WITH YOUR SERVER ADDRESS
- 
-      client.println("POST /observatory/add.php HTTP/1.1"); 
-      client.println("Host: 192.168.74.5"); // SERVER ADDRESS HERE TOO
-      client.println("Content-Type: application/x-www-form-urlencoded"); 
-      client.print("Content-Length: "); 
-      client.println(strlen(combinedArray)); 
-      client.println(); 
-      client.print(combinedArray); 
-      client.println();
-   
-    } 
-
-    //Disconnect
-
-    if (client.connected()) { 
-      client.stop();  // DISCONNECT FROM THE SERVER
-    }
   }
 
 }
@@ -368,6 +366,32 @@ void stop() {
     sensfermeture = false;
     inputString = "";
     stringComplete = false;
+}
+
+void iptrans(char post[], char combinedArray[]) {
+    ///////////////ETHERNET//////////////////////
+
+  EthernetClient client = server.available();
+ 
+  /////////////////////////////////////////////
+     if (client.connect("192.168.74.5",83)) { // REPLACE WITH YOUR SERVER ADDRESS
+ 
+      client.println(post); 
+      client.println("Host: 192.168.74.5"); // SERVER ADDRESS HERE TOO
+      client.println("Content-Type: application/x-www-form-urlencoded"); 
+      client.print("Content-Length: "); 
+      client.println(strlen(combinedArray)); 
+      client.println(); 
+      client.print(combinedArray); 
+      client.println();
+   
+    } 
+
+    //Disconnect
+
+    if (client.connected()) { 
+      client.stop();  // DISCONNECT FROM THE SERVER
+    }
 }
 
 void serialEvent() {
