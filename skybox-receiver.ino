@@ -378,6 +378,9 @@ void stop() {
 
 void iptrans(char post[], char combinedArray[]) {
     ///////////////ETHERNET//////////////////////
+Serial.println("j envoie ca : ");
+Serial.println(post);
+Serial.println(combinedArray);
 
   EthernetClient client = server.available();
  
