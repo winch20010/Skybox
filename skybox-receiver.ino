@@ -273,14 +273,15 @@ void loop()
   double mysqm = myData.sqmval;
   
   if  (gotdata) {
+    
          if (((mysqm <= 100) || (detecpluid < 10) || (tempcield <= -10)) || ((switchFerme == HIGH)&&(switchOuvert == LOW))) {
    
-   safety = "safety=safe";
+   sprintf(safety, "%s%s", "safety=", "safe");
    iptrans(post2, safety);
    gotdata = false;
          }
   else {
-   safety = "safety=nosafe";
+   sprintf(safety, "%s%s", "safety=", "nosafe");
    iptrans(post2, safety);
     gotdata = false;
    }
