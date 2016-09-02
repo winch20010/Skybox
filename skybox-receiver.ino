@@ -35,9 +35,9 @@
 //Revision 4.2
 //August 26th 2016
 //Add FaileStatus checks
-//Revision 4.3
-//August 27th 2016
-//Review safety code and bug fixes
+//Revision 4.5
+//September 2th 2016
+//Fix bugs on FaileSafe Status
 
 
 #include <RH_ASK.h>
@@ -99,7 +99,6 @@ int switchFerme = 0;
 int minutes = 90;
 
 
-
 unsigned long time1;
 unsigned long time2;
 unsigned long timemotor;
@@ -109,6 +108,7 @@ unsigned long timemotor;
 
 char temperature[6];
 char combinedArray;
+//char chaine;
 char post[] = "POST /observatory/add.php HTTP/1.1";
 char post2[] = "POST /observatory/safety.php HTTP/1.1";
 
@@ -123,7 +123,10 @@ boolean gotdata = false;
 String inputString = "";         // a string to hold incoming data
 boolean stringComplete = false;  // whether the string is complete
 char safety[] = "safety=nosafe";
+int safestate = 1;
+int safe = 0;
 
+ EthernetClient client ;
 //////////////////////////////////////////////
 
 /////////////BEGIN SETUP//////////////////////
@@ -143,7 +146,7 @@ void setup()
   
   Serial.begin(9600); // Debugging only
   Serial.flush();
-  Serial.println("Version 4.3");
+  Serial.println("Version 4.5");
   
   Serial.println("setup()");
   
@@ -157,11 +160,7 @@ void setup()
   else
     Serial.println("got an IP address using DHCP");
 
-  /////////////Radio Frequency//////////////
-  if (!driver.init())
-    Serial.println("init failed");
 
-  ////////////Ethernet Listen/////////////
 
   server.begin();
   // Say who we think we are.
@@ -243,8 +242,8 @@ void loop()
   uint8_t buflen = sizeof(buf);
 
   if (driver.recv(buf, &buflen)) {
-    gotdata = true;
-Serial.println("jerecois");
+       gotdata = true;
+
     // Message with a good checksum received, dump it.
     driver.printBuffer("Got:", buf, buflen);
     if (buflen == 24) {
@@ -271,23 +270,28 @@ Serial.println("jerecois");
   double tempambient = myData.temp_ambient;
   double tempsol = myData.temp;
   double mysqm = myData.sqmval;
-  
-  if  (gotdata) {
-    
-         if (((mysqm <= 2) || (detecpluid < 1) || (tempcield <= -10)) || ((switchFerme == HIGH)&&(switchOuvert == LOW))) {
-   
-   sprintf(safety, "%s%s", "safety=", "safe");
-   iptrans(post2, safety);
-   gotdata = false;
-         }
-  else {
-   sprintf(safety, "%s%s", "safety=", "nosafe");
-   iptrans(post2, safety);
-    gotdata = false;
-   }
-   Serial.println(safety);
-  }
-  
+
+ 
+     if   (((mysqm <= 2) && (detecpluid < 1) && (tempcield <= -10)) && ((switchFerme == HIGH)&&(switchOuvert == LOW))) {
+      safe = 1;
+      sprintf(safety, "%s%s", "safety=", "safe");
+      gotdata = false;
+    }
+    else {
+      sprintf(safety, "%s%s", "safety=", "nosafe");
+      safe = 0;
+      gotdata = false;
+    }
+ 
+
+    if (safestate != safe) {
+      Serial.println("different");
+      safestate = safe;
+      EthernetClient client = server.available();
+      iptrans(post2, safety);
+    }
+ //   Serial.println(safety);
+ 
   //Convert variables in String
   // 4 is mininum width, 2 is precision; float value is copied onto str_temp
   dtostrf(tempcield, 5, 2, str_temp);
@@ -317,6 +321,7 @@ Serial.println("jerecois");
 
     time2 += 120000;
     Serial.println("ca envoie");
+    EthernetClient client = server.available();
     iptrans(post, combinedArray);
 
   }
@@ -376,18 +381,17 @@ void stop() {
     stringComplete = false;
 }
 
-void iptrans(char post[], char combinedArray[]) {
+void iptrans(char port[], char combinedArray[]) {
     ///////////////ETHERNET//////////////////////
-Serial.println("j envoie ca : ");
-Serial.println(post);
-Serial.println(combinedArray);
 
-  EthernetClient client = server.available();
+  //EthernetClient client = server.available();
  
   /////////////////////////////////////////////
+
+  
      if (client.connect("192.168.74.5",83)) { // REPLACE WITH YOUR SERVER ADDRESS
  
-      client.println(post); 
+      client.println(port); 
       client.println("Host: 192.168.74.5"); // SERVER ADDRESS HERE TOO
       client.println("Content-Type: application/x-www-form-urlencoded"); 
       client.print("Content-Length: "); 
