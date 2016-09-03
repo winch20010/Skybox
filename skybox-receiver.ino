@@ -67,12 +67,7 @@ byte subnet[] = { 255, 255, 255, 0 };
 
 ///////////////////////////////////////////////////////
 
-////////////Radio Frequency initialization/////////////
 
-//Radio Frequency call
-RH_ASK driver(2000, 8);
-
-///////////////////////////////////////////////////////
 
 //////////////VARIABLES////////////////////////////////
 
@@ -127,6 +122,13 @@ int safestate = 1;
 int safe = 0;
 
  EthernetClient client ;
+
+ ////////////Radio Frequency initialization/////////////
+
+//Radio Frequency call
+RH_ASK driver(2000, 8);
+
+///////////////////////////////////////////////////////
 //////////////////////////////////////////////
 
 /////////////BEGIN SETUP//////////////////////
@@ -143,12 +145,16 @@ void setup()
   digitalWrite(5, HIGH);
   digitalWrite(6, HIGH);
 
-  
-  Serial.begin(9600); // Debugging only
+
+//////////SERIAL INIT/////////////////////
+    Serial.begin(9600); // Debugging only
   Serial.flush();
   Serial.println("Version 4.5");
   
   Serial.println("setup()");
+
+  /////////////////////////////////////
+
   
     ///////////////ETHERNET//////////////////
     if (Ethernet.begin(mac) == 0) {
@@ -167,6 +173,9 @@ void setup()
   Serial.println(Ethernet.localIP());
   delay(1000);
 
+////////////////////////////////////////
+
+
   
 }
  
@@ -176,6 +185,21 @@ void loop()
 {
   time1 = millis();
   control();
+
+  
+  ////////////RF433 SECTION/////////////////////
+  uint8_t buf[RH_ASK_MAX_MESSAGE_LEN];
+  uint8_t buflen = sizeof(buf);
+
+  if (driver.recv(buf, &buflen)) {
+       gotdata = true;
+
+    // Message with a good checksum received, dump it.
+    driver.printBuffer("Got:", buf, buflen);
+    if (buflen == 24) {
+      memcpy(&myData, buf, sizeof(myData));
+    }
+  }
 
   //////////BUTTONS + RELAYS/////////////
 
@@ -237,19 +261,6 @@ void loop()
 
 
 
-  ////////////RF433 SECTION/////////////////////
-  uint8_t buf[RH_ASK_MAX_MESSAGE_LEN];
-  uint8_t buflen = sizeof(buf);
-
-  if (driver.recv(buf, &buflen)) {
-       gotdata = true;
-
-    // Message with a good checksum received, dump it.
-    driver.printBuffer("Got:", buf, buflen);
-    if (buflen == 24) {
-      memcpy(&myData, buf, sizeof(myData));
-    }
-  }
 
   //////////////////////////////////////////////////////
 
