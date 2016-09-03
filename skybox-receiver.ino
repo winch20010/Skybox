@@ -38,6 +38,9 @@
 //Revision 4.5
 //September 2th 2016
 //Fix bugs on FaileSafe Status
+//Revision 5.0
+//September 3th 2016
+//Fix issue with RF433 + Serial input collisions
 
 
 #include <RH_ASK.h>
@@ -121,6 +124,8 @@ char safety[] = "safety=nosafe";
 int safestate = 1;
 int safe = 0;
 
+short LF = 10; 
+
  EthernetClient client ;
 
  ////////////Radio Frequency initialization/////////////
@@ -148,11 +153,11 @@ void setup()
 
 //////////SERIAL INIT/////////////////////
     Serial.begin(9600); // Debugging only
-    Serial.flush();
+  //  Serial.flush();
         if (!driver.init())
          Serial.println("init failed");
   
-  Serial.println("Version 4.5");
+  Serial.println("Version 5.0");
   
   Serial.println("setup()");
 
@@ -189,6 +194,9 @@ void loop()
   time1 = millis();
   control();
 
+if (Serial.available() > 0) {
+  Serialfunction();
+}
   
   ////////////RF433 SECTION/////////////////////
   uint8_t buf[RH_ASK_MAX_MESSAGE_LEN];
@@ -199,6 +207,7 @@ void loop()
 
     // Message with a good checksum received, dump it.
     driver.printBuffer("Got:", buf, buflen);
+    Serial.flush();
     if (buflen == 24) {
       memcpy(&myData, buf, sizeof(myData));
     }
@@ -369,6 +378,9 @@ void control(){
   }
   else if (buttonClose == HIGH && buttonOpen == HIGH && (button)) {
     stop();
+    Serial.println("buttons");
+    Serial.println(buttonClose);
+    Serial.println(buttonOpen);
     Serial.println("je coupe toutv2");
   }
 
@@ -401,7 +413,8 @@ void iptrans(char port[], char combinedArray[]) {
   //EthernetClient client = server.available();
  
   /////////////////////////////////////////////
-
+Serial.println(port);
+Serial.println(combinedArray);
   
      if (client.connect("192.168.74.5",83)) { // REPLACE WITH YOUR SERVER ADDRESS
  
@@ -423,20 +436,30 @@ void iptrans(char port[], char combinedArray[]) {
     }
 }
 
-void serialEvent() {
-  while (Serial.available()) {
+void Serialfunction() {
+
+
     // get the new byte:
-    char inChar = (char)Serial.read();
+    String inChar = Serial.readStringUntil(LF);
+
+   if (inChar) {   
+ 
     // add it to the inputString:
-    valSerial += inChar;
+    valSerial = inChar;
+    inChar = "";
+    Serial.flush();
+           if (!driver.init())
+         Serial.println("init failed");
+
     // if the incoming character is a newline, set a flag
     // so the main loop can do something about it:
-    if (inChar == '$' ) {
+   // if (inChar == '$' ) {
       if (valSerial == "STOP$" || valSerial == "OUVRIR$" || valSerial == "FERMER$" ) {
         stringComplete = true;
         timemotor = millis() + 28000;
         inputString = valSerial;
         valSerial = "";
+ 
       }
       else if (valSerial == "ETAT$") {
              
@@ -455,9 +478,10 @@ void serialEvent() {
         else {
           Serial.println("UNKNOWN$");
         }
-      }
+   //   }
       
       valSerial = "";
     }
+    
   }
 }
