@@ -95,7 +95,7 @@ int minutes = 90;
 
 
 unsigned long time1;
-unsigned long time2;
+unsigned long time2 = 120000;
 unsigned long timemotor;
 
 #define RELAY1  6                       
@@ -148,7 +148,10 @@ void setup()
 
 //////////SERIAL INIT/////////////////////
     Serial.begin(9600); // Debugging only
-  Serial.flush();
+    Serial.flush();
+        if (!driver.init())
+         Serial.println("init failed");
+  
   Serial.println("Version 4.5");
   
   Serial.println("setup()");
