@@ -35,13 +35,12 @@
 //Revision 4.2
 //August 26th 2016
 //Add FaileStatus checks
-//Revision 4.5
-//September 2th 2016
-//Fix bugs on FaileSafe Status
-//Revision 5.0
-//September 3th 2016
-//Fix issue with RF433 + Serial input collisions
-
+//Revision 4.3
+//August 27th 2016
+//Review safety code and bug fixes
+//Revision 5.0.1
+//September 04th 2016
+//Safety issue correction (no serial print in the safety loop)
 
 #include <RH_ASK.h>
 #include <SPI.h> // Not actualy used but needed to compile
@@ -70,7 +69,12 @@ byte subnet[] = { 255, 255, 255, 0 };
 
 ///////////////////////////////////////////////////////
 
+////////////Radio Frequency initialization/////////////
 
+//Radio Frequency call
+RH_ASK driver(2000, 8);
+
+///////////////////////////////////////////////////////
 
 //////////////VARIABLES////////////////////////////////
 
@@ -97,6 +101,7 @@ int switchFerme = 0;
 int minutes = 90;
 
 
+
 unsigned long time1;
 unsigned long time2 = 120000;
 unsigned long timemotor;
@@ -106,7 +111,6 @@ unsigned long timemotor;
 
 char temperature[6];
 char combinedArray;
-//char chaine;
 char post[] = "POST /observatory/add.php HTTP/1.1";
 char post2[] = "POST /observatory/safety.php HTTP/1.1";
 
@@ -121,19 +125,9 @@ boolean gotdata = false;
 String inputString = "";         // a string to hold incoming data
 boolean stringComplete = false;  // whether the string is complete
 char safety[] = "safety=nosafe";
-int safestate = 1;
-int safe = 0;
+boolean safestate = true;
+ boolean safebool = false;
 
-short LF = 10; 
-
- EthernetClient client ;
-
- ////////////Radio Frequency initialization/////////////
-
-//Radio Frequency call
-RH_ASK driver(2000, 8);
-
-///////////////////////////////////////////////////////
 //////////////////////////////////////////////
 
 /////////////BEGIN SETUP//////////////////////
@@ -150,19 +144,12 @@ void setup()
   digitalWrite(5, HIGH);
   digitalWrite(6, HIGH);
 
-
-//////////SERIAL INIT/////////////////////
-    Serial.begin(9600); // Debugging only
-  //  Serial.flush();
-        if (!driver.init())
-         Serial.println("init failed");
   
+  Serial.begin(9600); // Debugging only
+  Serial.flush();
   Serial.println("Version 5.0");
   
   Serial.println("setup()");
-
-  /////////////////////////////////////
-
   
     ///////////////ETHERNET//////////////////
     if (Ethernet.begin(mac) == 0) {
@@ -174,15 +161,16 @@ void setup()
   else
     Serial.println("got an IP address using DHCP");
 
+  /////////////Radio Frequency//////////////
+  if (!driver.init())
+    Serial.println("init failed");
 
+  ////////////Ethernet Listen/////////////
 
   server.begin();
   // Say who we think we are.
   Serial.println(Ethernet.localIP());
   delay(1000);
-
-////////////////////////////////////////
-
 
   
 }
@@ -193,25 +181,6 @@ void loop()
 {
   time1 = millis();
   control();
-
-if (Serial.available() > 0) {
-  Serialfunction();
-}
-  
-  ////////////RF433 SECTION/////////////////////
-  uint8_t buf[RH_ASK_MAX_MESSAGE_LEN];
-  uint8_t buflen = sizeof(buf);
-
-  if (driver.recv(buf, &buflen)) {
-       gotdata = true;
-
-    // Message with a good checksum received, dump it.
-    driver.printBuffer("Got:", buf, buflen);
-    Serial.flush();
-    if (buflen == 24) {
-      memcpy(&myData, buf, sizeof(myData));
-    }
-  }
 
   //////////BUTTONS + RELAYS/////////////
 
@@ -228,7 +197,7 @@ if (Serial.available() > 0) {
   if (inputString == "OUVRIR$" && switchOuvert == HIGH ) { 
      
       sensouverture = true;
-      //Serial.println("j ouvre");
+  //    Serial.println("j ouvre");
       digitalWrite(RELAY1,LOW);
       digitalWrite(RELAY2,HIGH);
       control();
@@ -239,7 +208,7 @@ if (Serial.available() > 0) {
   else if (inputString == "FERMER$" && switchFerme == HIGH) {
      
       sensfermeture = true;
-      //Serial.println("je ferme");
+  //    Serial.println("je ferme");
       digitalWrite(RELAY1,HIGH);
       digitalWrite(RELAY2,LOW);
       control();
@@ -273,6 +242,22 @@ if (Serial.available() > 0) {
 
 
 
+  ////////////RF433 SECTION/////////////////////
+  uint8_t buf[RH_ASK_MAX_MESSAGE_LEN];
+  uint8_t buflen = sizeof(buf);
+
+  if (driver.recv(buf, &buflen)) {
+    
+Serial.println("jerecois");
+    // Message with a good checksum received, dump it.
+    driver.printBuffer("Got:", buf, buflen);
+    if (buflen == 24) {
+            gotdata = true;
+      memcpy(&myData, buf, sizeof(myData));
+    }
+
+    
+  }
 
   //////////////////////////////////////////////////////
 
@@ -293,28 +278,28 @@ if (Serial.available() > 0) {
   double tempambient = myData.temp_ambient;
   double tempsol = myData.temp;
   double mysqm = myData.sqmval;
-
- 
-     if   (((mysqm <= 2) && (detecpluid < 1) && (tempcield <= -10)) && ((switchFerme == HIGH)&&(switchOuvert == LOW))) {
-      safe = 1;
-      sprintf(safety, "%s%s", "safety=", "safe");
-      gotdata = false;
+  
+  if  (gotdata) {
+    
+         if (((mysqm <= 2) && (detecpluid < 1) && (tempcield <= -10)) && ((switchFerme == HIGH)&&(switchOuvert == LOW))) {
+   safebool = true;
+   sprintf(safety, "%s%s", "safety=", "safe");
+   gotdata = false;
+         }
+  else  {
+   sprintf(safety, "%s%s", "safety=", "nosafe");
+   safebool = false;
+    gotdata = false;
     }
-    else {
-      sprintf(safety, "%s%s", "safety=", "nosafe");
-      safe = 0;
-      gotdata = false;
-    }
- 
+    //  Serial.println(safety);
+  
+  }
 
-    if (safestate != safe) {
-      Serial.println("different");
-      safestate = safe;
-      EthernetClient client = server.available();
+  if (safestate != safebool) {
+  //   Serial.println("different");
+      safestate = safebool;
       iptrans(post2, safety);
-    }
- //   Serial.println(safety);
- 
+  }
   //Convert variables in String
   // 4 is mininum width, 2 is precision; float value is copied onto str_temp
   dtostrf(tempcield, 5, 2, str_temp);
@@ -344,7 +329,6 @@ if (Serial.available() > 0) {
 
     time2 += 120000;
     Serial.println("ca envoie");
-    EthernetClient client = server.available();
     iptrans(post, combinedArray);
 
   }
@@ -378,9 +362,6 @@ void control(){
   }
   else if (buttonClose == HIGH && buttonOpen == HIGH && (button)) {
     stop();
-    Serial.println("buttons");
-    Serial.println(buttonClose);
-    Serial.println(buttonOpen);
     Serial.println("je coupe toutv2");
   }
 
@@ -395,7 +376,7 @@ else if ((timemotor < millis()) && inputString != "" ) {
   }
   
 }
-
+A
 void stop() {
     Serial.println("je stop");
     digitalWrite(RELAY1,HIGH);
@@ -407,18 +388,18 @@ void stop() {
     stringComplete = false;
 }
 
-void iptrans(char port[], char combinedArray[]) {
+void iptrans(char post[], char combinedArray[]) {
     ///////////////ETHERNET//////////////////////
+Serial.println("j envoie ca : ");
+Serial.println(post);
+Serial.println(combinedArray);
 
-  //EthernetClient client = server.available();
+  EthernetClient client = server.available();
  
   /////////////////////////////////////////////
-Serial.println(port);
-Serial.println(combinedArray);
-  
      if (client.connect("192.168.74.5",83)) { // REPLACE WITH YOUR SERVER ADDRESS
  
-      client.println(port); 
+      client.println(post); 
       client.println("Host: 192.168.74.5"); // SERVER ADDRESS HERE TOO
       client.println("Content-Type: application/x-www-form-urlencoded"); 
       client.print("Content-Length: "); 
@@ -436,30 +417,20 @@ Serial.println(combinedArray);
     }
 }
 
-void Serialfunction() {
-
-
+void serialEvent() {
+  while (Serial.available()) {
     // get the new byte:
-    String inChar = Serial.readStringUntil(LF);
-
-   if (inChar) {   
- 
+    char inChar = (char)Serial.read();
     // add it to the inputString:
-    valSerial = inChar;
-    inChar = "";
-    Serial.flush();
-           if (!driver.init())
-         Serial.println("init failed");
-
+    valSerial += inChar;
     // if the incoming character is a newline, set a flag
     // so the main loop can do something about it:
-   // if (inChar == '$' ) {
+    if (inChar == '$' ) {
       if (valSerial == "STOP$" || valSerial == "OUVRIR$" || valSerial == "FERMER$" ) {
         stringComplete = true;
         timemotor = millis() + 28000;
         inputString = valSerial;
         valSerial = "";
- 
       }
       else if (valSerial == "ETAT$") {
              
@@ -478,10 +449,9 @@ void Serialfunction() {
         else {
           Serial.println("UNKNOWN$");
         }
-   //   }
+      }
       
       valSerial = "";
     }
-    
   }
 }
