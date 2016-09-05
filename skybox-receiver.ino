@@ -236,7 +236,7 @@ void loop()
         else {
           Serial.println("UNKNOWN$");
         }
-      valSerial = "";
+
       }
 
 else
