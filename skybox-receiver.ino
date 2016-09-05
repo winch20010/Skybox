@@ -394,7 +394,7 @@ else if ((timemotor < millis()) && valSerial != "" ) {
   }
   
 }
-A
+
 void stop() {
     Serial.println("je stop");
     digitalWrite(RELAY1,HIGH);
