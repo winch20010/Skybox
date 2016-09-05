@@ -236,10 +236,10 @@ void loop()
         else {
           Serial.println("UNKNOWN$");
         }
-
+   
       }
 
-else
+else {
   Serial.println("Value not accepted");
   valSerial = "";
   }
@@ -388,7 +388,7 @@ void control(){
     stop();
   }
  
-else if ((timemotor < millis()) && valSerial != "" ) {
+else if ((timemotor < millis()) && valSerial != "" && valSerial != "ETAT$" ) {
     Serial.println("TEMPS PASSE");
     stop();
   }
@@ -434,5 +434,4 @@ Serial.println(combinedArray);
       client.stop();  // DISCONNECT FROM THE SERVER
     }
 }
-
 
