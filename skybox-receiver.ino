@@ -194,7 +194,7 @@ void loop()
 
   //Open roof if data received = ouvrir, time less than 50sec and limit switch not activated
   if (valSerial == "OUVRIR$" && switchOuvert == HIGH ) { 
-     
+      timemotor = millis() + 28000;
       sensouverture = true;
   //    Serial.println("j ouvre");
       digitalWrite(RELAY1,LOW);
@@ -205,7 +205,7 @@ void loop()
   }
   //Close roof if data received = fermer, time less than 50sec and limit switch not activated
   else if (valSerial == "FERMER$" && switchFerme == HIGH) {
-     
+      timemotor = millis() + 28000;
       sensfermeture = true;
   //    Serial.println("je ferme");
       digitalWrite(RELAY1,HIGH);
@@ -236,12 +236,13 @@ void loop()
         else {
           Serial.println("UNKNOWN$");
         }
+      valSerial = "";
       }
 
 else
   Serial.println("Value not accepted");
-     
-    }
+  valSerial = "";
+  }
 }
   // check which pushbutton is pressed.
 
@@ -401,6 +402,7 @@ void stop() {
     button = false;
     sensouverture = false;
     sensfermeture = false;
+    valSerial = "";
 
 }
 
