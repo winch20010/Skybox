@@ -44,6 +44,9 @@
 //Revision 5.1
 //September 05th 2016
 //Remove Serial event and check serial input in the loop function
+//Revision 5.2
+//September 06th 2016
+//Total rewrite Serial event part - Miss now Got data from transmitter...
 
 #include <RH_ASK.h>
 #include <SPI.h> // Not actualy used but needed to compile
@@ -105,7 +108,7 @@ int minutes = 90;
 
 
 
-unsigned long time1;
+unsigned long time1 = millis();
 unsigned long time2 = 120000;
 unsigned long timemotor;
 
@@ -148,7 +151,7 @@ void setup()
 
   
   Serial.begin(9600); // Debugging only
-  Serial.println("Version 5.1");
+  Serial.println("Version 5.2");
   
   Serial.println("setup()");
   
@@ -327,31 +330,24 @@ Serial.println(valSerial);
 
         }
 
-       else   if (valSerial == "OUVRIR$" && switchOuvert == HIGH ) { 
+ if (valSerial == "OUVRIR$" && switchOuvert == HIGH ) { 
       timemotor = millis() + 28000;
       sensouverture = true;
-  //    Serial.println("j ouvre");
       digitalWrite(RELAY1,LOW);
       digitalWrite(RELAY2,HIGH);
+    }
+   else  if (valSerial == "FERMER$" && switchFerme == HIGH) {
+    timemotor = millis() + 28000;
+         sensfermeture = true;
+  digitalWrite(RELAY1,HIGH);
+     digitalWrite(RELAY2,LOW);
 
-
- 
-  }
-        else  if (valSerial == "STOP$") {
-         // vals = "";
+      }
+ if (valSerial == "STOP$") {
       stop();
         }
 
-          else if (valSerial == "FERMER$" && switchFerme == HIGH) {
-      timemotor = millis() + 28000;
-      sensfermeture = true;
-  //    Serial.println("je ferme");
-      digitalWrite(RELAY1,HIGH);
-      digitalWrite(RELAY2,LOW);
 
-    
-  
-  }
 }
 valSerial = "";
 }
@@ -433,66 +429,4 @@ delay(200);
     }
 }
 
-void serialev(String vals) {
-  Serial.print("val : " );
-  Serial.println(vals);
 
-  //Open roof if data received = ouvrir, time less than 50sec and limit switch not activated
-  if (vals == "OUVRIR$" && switchOuvert == HIGH ) { 
-      timemotor = millis() + 28000;
-      sensouverture = true;
-  //    Serial.println("j ouvre");
-      digitalWrite(RELAY1,LOW);
-      digitalWrite(RELAY2,HIGH);
-     //   vals = "";
-    //  control();
-  
-  
-  }
-  //Close roof if data received = fermer, time less than 50sec and limit switch not activated
-  else if (vals == "FERMER$" && switchFerme == HIGH) {
-      timemotor = millis() + 28000;
-      sensfermeture = true;
-  //    Serial.println("je ferme");
-      digitalWrite(RELAY1,HIGH);
-      digitalWrite(RELAY2,LOW);
-    //            vals = "";
-    //  control();
-    
-  
-  }
-      else  if (vals == "STOP$") {
-          vals = "";
-      stop();
-       
-
-    }
- 
-      else if (vals == "ETAT$") {
-             
-        if (switchFerme == LOW) {
-          Serial.println("FERME$");
-        }
-        else if (switchOuvert == LOW) {
-          Serial.println("OUVERT$");
-        }
-        else if (sensouverture) {
-          Serial.println("OUVERTURE$");
-        }
-        else if (sensfermeture) {
-          Serial.println("FERMETURE$");
-        }
-        else {
-          Serial.println("UNKNOWN$");
-        }
-
-      }
-
-else {
-  Serial.println("Value not accepted");
- 
-  }
-//return;
-  //vals = "";
-
-}
