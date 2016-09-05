@@ -149,8 +149,16 @@ void setup()
   digitalWrite(5, HIGH);
   digitalWrite(6, HIGH);
 
+
+
+
   
   Serial.begin(9600); // Debugging only
+
+    /////////////Radio Frequency//////////////
+  if (!driver.init())
+    Serial.println("init failed");
+    
   Serial.println("Version 5.2");
   
   Serial.println("setup()");
@@ -165,16 +173,14 @@ void setup()
   else
     Serial.println("got an IP address using DHCP");
 
-  /////////////Radio Frequency//////////////
-  if (!driver.init())
-    Serial.println("init failed");
 
   ////////////Ethernet Listen/////////////
 
   server.begin();
   // Say who we think we are.
   Serial.println(Ethernet.localIP());
-  delay(1000);
+ // delay(10);
+
 
   
 }
@@ -185,6 +191,7 @@ void loop()
 {
   time1 = millis();
   control();
+ 
 //  serialev();
   //////////BUTTONS + RELAYS/////////////
 
@@ -220,9 +227,10 @@ void loop()
 
   if (driver.recv(buf, &buflen)) {
     
-Serial.println("jerecois");
+//Serial.println("jerecois");
     // Message with a good checksum received, dump it.
     driver.printBuffer("Got:", buf, buflen);
+  
     if (buflen == 24) {
             gotdata = true;
       memcpy(&myData, buf, sizeof(myData));
@@ -307,7 +315,8 @@ Serial.println("jerecois");
 
 //valSerial = "";
 while (Serial.available() > 0) {
-  delay(10);
+ delay(100);
+ //Serial.println("jecoute");
         valSerial = Serial.readStringUntil('\n');
 Serial.println(valSerial);
         if (valSerial == "ETAT$") {
@@ -350,6 +359,7 @@ Serial.println(valSerial);
 
 }
 valSerial = "";
+
 }
 
 ////////////END LOOP/////////////////////
