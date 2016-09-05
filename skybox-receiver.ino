@@ -41,6 +41,9 @@
 //Revision 5.0.1
 //September 04th 2016
 //Safety issue correction (no serial print in the safety loop)
+//Revision 5.1
+//September 05th 2016
+//Remove Serial event and check serial input in the loop function
 
 #include <RH_ASK.h>
 #include <SPI.h> // Not actualy used but needed to compile
@@ -122,8 +125,7 @@ boolean sensouverture = false;
 boolean sensfermeture = false;
 boolean gotdata = false;
 
-String inputString = "";         // a string to hold incoming data
-boolean stringComplete = false;  // whether the string is complete
+
 char safety[] = "safety=nosafe";
 boolean safestate = true;
  boolean safebool = false;
@@ -146,8 +148,7 @@ void setup()
 
   
   Serial.begin(9600); // Debugging only
-  Serial.flush();
-  Serial.println("Version 5.0");
+  Serial.println("Version 5.1");
   
   Serial.println("setup()");
   
@@ -187,14 +188,12 @@ void loop()
 
   //Serial Roof command
 
-  if (stringComplete) {
-
- 
- //   Serial.println("info recu");
-
+    while (Serial.available() > 0) {
+        valSerial = Serial.readStringUntil('\n');
+    
 
   //Open roof if data received = ouvrir, time less than 50sec and limit switch not activated
-  if (inputString == "OUVRIR$" && switchOuvert == HIGH ) { 
+  if (valSerial == "OUVRIR$" && switchOuvert == HIGH ) { 
      
       sensouverture = true;
   //    Serial.println("j ouvre");
@@ -205,7 +204,7 @@ void loop()
   
   }
   //Close roof if data received = fermer, time less than 50sec and limit switch not activated
-  else if (inputString == "FERMER$" && switchFerme == HIGH) {
+  else if (valSerial == "FERMER$" && switchFerme == HIGH) {
      
       sensfermeture = true;
   //    Serial.println("je ferme");
@@ -215,11 +214,35 @@ void loop()
     
   
   }
-      else  if (inputString == "STOP$") {
+      else  if (valSerial == "STOP$") {
       stop();
 
     }
-  }
+ 
+      else if (valSerial == "ETAT$") {
+             
+        if (switchFerme == LOW) {
+          Serial.println("FERME$");
+        }
+        else if (switchOuvert == LOW) {
+          Serial.println("OUVERT$");
+        }
+        else if (sensouverture) {
+          Serial.println("OUVERTURE$");
+        }
+        else if (sensfermeture) {
+          Serial.println("FERMETURE$");
+        }
+        else {
+          Serial.println("UNKNOWN$");
+        }
+      }
+
+else
+  Serial.println("Value not accepted");
+     
+    }
+}
   // check which pushbutton is pressed.
 
   if (buttonClose == HIGH && buttonOpen == LOW && switchOuvert == HIGH) {
@@ -348,12 +371,6 @@ void control(){
   switchOuvert = digitalRead(toitouvert);
   switchFerme = digitalRead(toitferme);
 
-  
-
-
- // if (switchOuvert == 0) {
- //   Serial.println("c est ouvert ...");
- // }
 
   if (buttonClose == LOW && buttonOpen == LOW ) {
    
@@ -370,7 +387,7 @@ void control(){
     stop();
   }
  
-else if ((timemotor < millis()) && inputString != "" ) {
+else if ((timemotor < millis()) && valSerial != "" ) {
     Serial.println("TEMPS PASSE");
     stop();
   }
@@ -384,8 +401,7 @@ void stop() {
     button = false;
     sensouverture = false;
     sensfermeture = false;
-    inputString = "";
-    stringComplete = false;
+
 }
 
 void iptrans(char post[], char combinedArray[]) {
@@ -417,41 +433,4 @@ Serial.println(combinedArray);
     }
 }
 
-void serialEvent() {
-  while (Serial.available()) {
-    // get the new byte:
-    char inChar = (char)Serial.read();
-    // add it to the inputString:
-    valSerial += inChar;
-    // if the incoming character is a newline, set a flag
-    // so the main loop can do something about it:
-    if (inChar == '$' ) {
-      if (valSerial == "STOP$" || valSerial == "OUVRIR$" || valSerial == "FERMER$" ) {
-        stringComplete = true;
-        timemotor = millis() + 28000;
-        inputString = valSerial;
-        valSerial = "";
-      }
-      else if (valSerial == "ETAT$") {
-             
-        if (switchFerme == LOW) {
-          Serial.println("FERME$");
-        }
-        else if (switchOuvert == LOW) {
-          Serial.println("OUVERT$");
-        }
-        else if (sensouverture) {
-          Serial.println("OUVERTURE$");
-        }
-        else if (sensfermeture) {
-          Serial.println("FERMETURE$");
-        }
-        else {
-          Serial.println("UNKNOWN$");
-        }
-      }
-      
-      valSerial = "";
-    }
-  }
-}
+
