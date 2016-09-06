@@ -368,9 +368,10 @@ char combinedArray[sizeof(myData1) + sizeof(str_temp1) +sizeof(myData2) + sizeof
     //Send Every 2 minutes
 
     time2 += 120000;
-    Serial.println("ca envoie");
-    iptrans(post, combinedArray);
-
+    if (mysqm != 0 && detecpluid !=0) {
+        Serial.println("ca envoie");
+        iptrans(post, combinedArray);
+    }
   }
 
 
