@@ -113,7 +113,7 @@ int minutes = 90;
 
 
 unsigned long time1 = millis();
-unsigned long time2 = 120000;
+unsigned long time2 = millis() + 120000;
 unsigned long timemotor;
 
 #define RELAY1  6                       
@@ -320,7 +320,7 @@ Serial.println("jerecois");
  
   //Convert variables in String
   // 4 is mininum width, 2 is precision; float value is copied onto str_temp
-  dtostrf(tempcield, 5, 2, str_tem1p);
+  dtostrf(tempcield, 5, 2, str_temp1);
   dtostrf(detecpluid, 5, 2, str_temp2);
   dtostrf(tempambient, 5, 2, str_temp3);
   dtostrf(tempsol, 5, 2, str_temp4);
