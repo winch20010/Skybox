@@ -47,6 +47,9 @@
 //Revision 5.2
 //September 06th 2016
 //Total rewrite Serial event part - Miss now Got data from transmitter...
+//Revision 5.3
+//September 07th 2016
+//Rewrite Serial event with new strategy code
 
 #include <RH_ASK.h>
 #include <SPI.h> // Not actualy used but needed to compile
@@ -192,6 +195,61 @@ void loop()
   time1 = millis();
   control();
  
+ 
+ //////////////SERIAL INPUT /////////////////
+   static char bufserial[10];
+  if (readline(Serial.read(), bufserial, 10) > 0) {
+    Serial.println(bufserial);
+    String valSerial = bufserial;
+   //Open roof if data received = ouvrir, time less than 50sec and limit switch not activated
+  if (valSerial == "OUVRIR" && switchOuvert == HIGH ) { 
+      timemotor = millis() + 28000;
+      sensouverture = true;
+      Serial.println("j ouvre");
+      digitalWrite(RELAY1,LOW);
+      digitalWrite(RELAY2,HIGH);
+      control();
+  
+  
+  }
+  //Close roof if data received = fermer, time less than 50sec and limit switch not activated
+  else if (valSerial == "FERMER" && switchFerme == HIGH) {
+      timemotor = millis() + 28000;
+      sensfermeture = true;
+      Serial.println("je ferme");
+      digitalWrite(RELAY1,HIGH);
+      digitalWrite(RELAY2,LOW);
+      control();
+    
+  
+  }
+      else  if (valSerial == "STOP") {
+      stop();
+
+
+    }
+    
+         else if (valSerial == "ETAT") {
+             
+        if (switchFerme == LOW) {
+          Serial.println("FERME$");
+        }
+        else if (switchOuvert == LOW) {
+          Serial.println("OUVERT$");
+        }
+        else if (sensouverture) {
+          Serial.println("OUVERTURE$");
+        }
+        else if (sensfermeture) {
+          Serial.println("FERMETURE$");
+        }
+        else {
+          Serial.println("UNKNOWN$");
+        }
+     
+      }
+    
+  }
 //  serialev();
   //////////BUTTONS + RELAYS/////////////
 
@@ -227,9 +285,9 @@ void loop()
 
   if (driver.recv(buf, &buflen)) {
     
-//Serial.println("jerecois");
+Serial.println("jerecois");
     // Message with a good checksum received, dump it.
-    driver.printBuffer("Got:", buf, buflen);
+   // driver.printBuffer("Got:", buf, buflen);
   
     if (buflen == 24) {
             gotdata = true;
@@ -313,52 +371,6 @@ void loop()
 
   }
 
-//valSerial = "";
-while (Serial.available() > 0) {
- delay(100);
- //Serial.println("jecoute");
-        valSerial = Serial.readStringUntil('\n');
-Serial.println(valSerial);
-        if (valSerial == "ETAT$") {
-             
-        if (switchFerme == LOW) {
-          Serial.println("FERME$");
-        }
-        else if (switchOuvert == LOW) {
-          Serial.println("OUVERT$");
-        }
-        else if (sensouverture) {
-          Serial.println("OUVERTURE$");
-        }
-        else if (sensfermeture) {
-          Serial.println("FERMETURE$");
-        }
-        else {
-          Serial.println("UNKNOWN$");
-        }
-
-        }
-
- if (valSerial == "OUVRIR$" && switchOuvert == HIGH ) { 
-      timemotor = millis() + 28000;
-      sensouverture = true;
-      digitalWrite(RELAY1,LOW);
-      digitalWrite(RELAY2,HIGH);
-    }
-   else  if (valSerial == "FERMER$" && switchFerme == HIGH) {
-    timemotor = millis() + 28000;
-         sensfermeture = true;
-  digitalWrite(RELAY1,HIGH);
-     digitalWrite(RELAY2,LOW);
-
-      }
- if (valSerial == "STOP$") {
-      stop();
-        }
-
-
-}
-valSerial = "";
 
 }
 
@@ -405,7 +417,7 @@ void stop() {
     button = false;
     sensouverture = false;
     sensfermeture = false;
-    valSerial = "";
+//    valSerial = "";
  
 
 }
@@ -431,7 +443,6 @@ Serial.println(combinedArray);
       client.println();
    
     } 
-delay(200);
     //Disconnect
 
     if (client.connected()) { 
@@ -439,4 +450,26 @@ delay(200);
     }
 }
 
+int readline(int readch, char *bufserial, int len)
+{
+  static int pos = 0;
+  int rpos;
 
+  if (readch > 0) {
+    switch (readch) {
+      case '\n': // Ignore new-lines
+        break;
+      case '$': // Return on CR
+        rpos = pos;
+        pos = 0;  // Reset position index ready for next time
+        return rpos;
+      default:
+        if (pos < len-1) {
+          bufserial[pos++] = readch;
+          bufserial[pos] = 0;
+        }
+    }
+  }
+  // No end of line has been found, so return -1.
+  return -1;
+}
