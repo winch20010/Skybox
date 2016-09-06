@@ -129,7 +129,7 @@ String valSerial;
 boolean button = false;
 boolean sensouverture = false;
 boolean sensfermeture = false;
-boolean gotdata = false;
+//boolean gotdata = false;
 
 
 char safety[] = "safety=nosafe";
@@ -335,24 +335,24 @@ Serial.println("jerecois");
   ///////////////////////////////////////////////////
 
 ////////SAFETY CONTROL IF RECEIVED RF DATA//////////////
- if  (gotdata) {
+ //if  (gotdata) {
     
     //If Value received  safe, then safety = safe
          if (((mysqm <= 2) && (detecpluid < 1) && (tempcield <= -10)) && ((switchFerme == HIGH)&&(switchOuvert == LOW))) {
    safebool = true;
-   safety="safety=safe";
-   gotdata = false;
+   char safety[]="safety=safe";
+ //  gotdata = false;
          }
          
     //If value receifed not safe, then safety = nosafe
   else  {
-   safety="safety=nosafe";
+   char safety[]="safety=nosafe";
    safebool = false;
-    gotdata = false;
+ //   gotdata = false;
     }
     //  Serial.println(safety);
   
-  }
+ // }
 
   if (safestate != safebool) {
   //   Serial.println("different");
