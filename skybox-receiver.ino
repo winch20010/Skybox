@@ -228,7 +228,7 @@ void loop()
 
 
     }
-    
+    //Give status of the roof
          else if (valSerial == "ETAT") {
              
         if (switchFerme == LOW) {
@@ -250,12 +250,9 @@ void loop()
       }
     
   }
-//  serialev();
+//////////////////////////////////////////
+
   //////////BUTTONS + RELAYS/////////////
-
-
-  //Serial Roof command
-
 
   // check which pushbutton is pressed.
 
@@ -293,8 +290,6 @@ Serial.println("jerecois");
             gotdata = true;
       memcpy(&myData, buf, sizeof(myData));
     }
-
-    
   }
 
   //////////////////////////////////////////////////////
@@ -334,20 +329,24 @@ Serial.println("jerecois");
   char myData5[] = "&sqmaverage=";
 
   //Concatenate all variables + attributes to be sent via Ethernet
-char combinedArray[sizeof(myData1) + sizeof(str_temp1) +sizeof(myData2) + sizeof(str_temp2) + sizeof(myData3) + sizeof(str_temp3)+ sizeof(myData4) + sizeof(str_temp4) +sizeof(myData5) + sizeof(str_temp5) + 1];
+  char combinedArray[sizeof(myData1) + sizeof(str_temp1) +sizeof(myData2) + sizeof(str_temp2) + sizeof(myData3) + sizeof(str_temp3)+ sizeof(myData4) + sizeof(str_temp4) +sizeof(myData5) + sizeof(str_temp5) + 1];
   sprintf(combinedArray, "%s%s%s%s%s%s%s%s%s%s", myData1, str_temp1, myData2,str_temp2,myData3,str_temp3,myData4,str_temp4,myData5,str_temp5);
 
   ///////////////////////////////////////////////////
 
+////////SAFETY CONTROL IF RECEIVED RF DATA//////////////
  if  (gotdata) {
     
+    //If Value received  safe, then safety = safe
          if (((mysqm <= 2) && (detecpluid < 1) && (tempcield <= -10)) && ((switchFerme == HIGH)&&(switchOuvert == LOW))) {
    safebool = true;
-   sprintf(safety, "%s%s", "safety=", "safe");
+   safety="safety=safe";
    gotdata = false;
          }
+         
+    //If value receifed not safe, then safety = nosafe
   else  {
-   sprintf(safety, "%s%s", "safety=", "nosafe");
+   safety="safety=nosafe";
    safebool = false;
     gotdata = false;
     }
@@ -361,7 +360,7 @@ char combinedArray[sizeof(myData1) + sizeof(str_temp1) +sizeof(myData2) + sizeof
       iptrans(post2, safety);
   }
 
-  //////////////////SEND ETHERNET///////////////////////
+  //////////////////UPDATE SQL DATABASE WITH SENSORS DATA///////////////////////
 
   if (time1 >= time2) {
 
@@ -412,7 +411,9 @@ else if ((timemotor < millis()) && ((sensfermeture) || (sensouverture))) {
   }
   
 }
+////////////////////////////////////////////////////
 
+///////FUNCTION STOP - STOP MOTORS ////////////////
 void stop() {
     Serial.println("je stop");
     digitalWrite(RELAY1,HIGH);
@@ -421,12 +422,13 @@ void stop() {
     sensouverture = false;
     sensfermeture = false;
 //    valSerial = "";
- 
-
 }
 
+
+/////////ETHERNET SEND DATA CONTROL TO NAS////////////
 void iptrans(char post[], char combinedArray[]) {
-    ///////////////ETHERNET//////////////////////
+ 
+    ///////////////ETHERNET init//////////////////////
 Serial.println("j envoie ca : ");
 Serial.println(post);
 Serial.println(combinedArray);
@@ -453,6 +455,7 @@ Serial.println(combinedArray);
     }
 }
 
+///////////INPUT SERIAL RECEIVED////////////////////////
 int readline(int readch, char *bufserial, int len)
 {
   static int pos = 0;
@@ -476,3 +479,4 @@ int readline(int readch, char *bufserial, int len)
   // No end of line has been found, so return -1.
   return -1;
 }
+///////////////////////////////////////////////////
