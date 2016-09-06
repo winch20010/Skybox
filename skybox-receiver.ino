@@ -50,6 +50,7 @@
 //Revision 5.3
 //September 07th 2016
 //Rewrite Serial event with new strategy code
+//Fix issue with combinedArray size buffer overflow
 
 #include <RH_ASK.h>
 #include <SPI.h> // Not actualy used but needed to compile
@@ -119,7 +120,6 @@ unsigned long timemotor;
 #define RELAY2  5
 
 char temperature[6];
-char combinedArray;
 char post[] = "POST /observatory/add.php HTTP/1.1";
 char post2[] = "POST /observatory/safety.php HTTP/1.1";
 
@@ -162,7 +162,7 @@ void setup()
   if (!driver.init())
     Serial.println("init failed");
     
-  Serial.println("Version 5.2");
+  Serial.println("Version 5.3");
   
   Serial.println("setup()");
   
@@ -301,14 +301,14 @@ Serial.println("jerecois");
 
   /////////////PREPARE DATA TO BE SENT TO INTERNET/////////////////
   //Initialization of variables received by RF433
-  char str_temp[6];
+  char str_temp1[6];
   char str_temp2[6];
   char str_temp3[6];
   char str_temp4[6];
   char str_temp5[6];
 
   //Size of data received
-  char combinedArray[84];
+  //char combinedArray[84];
 
   //Affect variables to values received by the RF433
   double tempcield = myData.tempciel;
@@ -317,7 +317,29 @@ Serial.println("jerecois");
   double tempsol = myData.temp;
   double mysqm = myData.sqmval;
   
-  if  (gotdata) {
+ 
+  //Convert variables in String
+  // 4 is mininum width, 2 is precision; float value is copied onto str_temp
+  dtostrf(tempcield, 5, 2, str_tem1p);
+  dtostrf(detecpluid, 5, 2, str_temp2);
+  dtostrf(tempambient, 5, 2, str_temp3);
+  dtostrf(tempsol, 5, 2, str_temp4);
+  dtostrf(mysqm, 5, 2, str_temp5);
+ 
+  //Define attributes to send via Ethernet
+  char myData1[] = "temperatureciel=";
+  char myData2[] = "&detectionpluie=";
+  char myData3[] = "&tempambient=";
+  char myData4[] = "&tempsol=";
+  char myData5[] = "&sqmaverage=";
+
+  //Concatenate all variables + attributes to be sent via Ethernet
+char combinedArray[sizeof(myData1) + sizeof(str_temp1) +sizeof(myData2) + sizeof(str_temp2) + sizeof(myData3) + sizeof(str_temp3)+ sizeof(myData4) + sizeof(str_temp4) +sizeof(myData5) + sizeof(str_temp5) + 1];
+  sprintf(combinedArray, "%s%s%s%s%s%s%s%s%s%s", myData1, str_temp1, myData2,str_temp2,myData3,str_temp3,myData4,str_temp4,myData5,str_temp5);
+
+  ///////////////////////////////////////////////////
+
+ if  (gotdata) {
     
          if (((mysqm <= 2) && (detecpluid < 1) && (tempcield <= -10)) && ((switchFerme == HIGH)&&(switchOuvert == LOW))) {
    safebool = true;
@@ -338,26 +360,6 @@ Serial.println("jerecois");
       safestate = safebool;
       iptrans(post2, safety);
   }
-  //Convert variables in String
-  // 4 is mininum width, 2 is precision; float value is copied onto str_temp
-  dtostrf(tempcield, 5, 2, str_temp);
-  dtostrf(detecpluid, 5, 2, str_temp2);
-  dtostrf(tempambient, 5, 2, str_temp3);
-  dtostrf(tempsol, 5, 2, str_temp4);
-  dtostrf(mysqm, 5, 2, str_temp5);
- 
-  //Define attributes to send via Ethernet
-  char myData1[] = "temperatureciel=";
-  char myData2[] = "&detectionpluie=";
-  char myData3[] = "&tempambient=";
-  char myData4[] = "&tempsol=";
-  char myData5[] = "&sqmaverage=";
-
-  //Concatenate all variables + attributes to be sent via Ethernet
-
-  sprintf(combinedArray, "%s%s%s%s%s%s%s%s%s%s", myData1, str_temp, myData2,str_temp2,myData3,str_temp3,myData4,str_temp4,myData5,str_temp5);
-
-  ///////////////////////////////////////////////////
 
   //////////////////SEND ETHERNET///////////////////////
 
