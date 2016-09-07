@@ -1,56 +1,11 @@
 //SkyBox Receiver  - Sebastien Burfin
-//Revision 3.1
-//June 1st 2016
-//Add Average for the sky light measure send it to intranet
-//Revision 3.2
-//June 2nd 2016
-//Code cleanup
-//Revision 3.3
-//June 17 2016
-//Add revision in serial output
-//Revision 3.4
-//June 18 2016
-//Add motor protection with switches
-//Revision 3.5
-//August 8th 2016
-//Add Serial control for roof
-//Revision 3.6
-//August 8th 2016
-//Bug correction serial
-//Revision 3.7
-//August 11th 2016
-//Full rewrite of Serial + button events
-//Revision 3.8
-//August 11th 2016
-//All working except serial string reception
-//Revision 3.9
-//August 12th 2016
-//Use analog pin instead of digital 0 for end course switches
-//Revision 4.0
-//August 12th 2016
-//Full revision of serial emergency stop procedure
-//Revision 4.1
-//August 15th 2016
-//Add STATUS variables
-//Revision 4.2
-//August 26th 2016
-//Add FaileStatus checks
-//Revision 4.3
-//August 27th 2016
-//Review safety code and bug fixes
-//Revision 5.0.1
-//September 04th 2016
-//Safety issue correction (no serial print in the safety loop)
-//Revision 5.1
-//September 05th 2016
-//Remove Serial event and check serial input in the loop function
-//Revision 5.2
-//September 06th 2016
-//Total rewrite Serial event part - Miss now Got data from transmitter...
 //Revision 5.3
 //September 07th 2016
 //Rewrite Serial event with new strategy code
 //Fix issue with combinedArray size buffer overflow
+//Revision 5.4
+//September 07th 2016
+//Fix memory issue which was causing most of the problem on the ardui ...
 
 #include <RH_ASK.h>
 #include <SPI.h> // Not actualy used but needed to compile
@@ -88,14 +43,11 @@ RH_ASK driver(2000, 8);
 
 //////////////VARIABLES////////////////////////////////
 
-struct dataStruct{
   double tempciel ;
   double temp_ambient; 
   double detectpluie;
   double temp;
   double sqmval;
-  unsigned long counter;
-}myData;
 
 //RTC_DS1307 RTC;
 //PUSHBUTTONS
@@ -110,8 +62,6 @@ int switchOuvert = 0;
 int switchFerme = 0; 
 int minutes = 90;
 
-
-
 unsigned long time1 = millis();
 unsigned long time2 = millis() + 120000;
 unsigned long timemotor;
@@ -124,7 +74,7 @@ char post[] = "POST /observatory/add.php HTTP/1.1";
 char post2[] = "POST /observatory/safety.php HTTP/1.1";
 
 String data1 = "";
-String valSerial;
+//String valSerial;
 
 boolean button = false;
 boolean sensouverture = false;
@@ -152,10 +102,6 @@ void setup()
   digitalWrite(5, HIGH);
   digitalWrite(6, HIGH);
 
-
-
-
-  
   Serial.begin(9600); // Debugging only
 
     /////////////Radio Frequency//////////////
@@ -175,34 +121,43 @@ void setup()
   }
   else
     Serial.println("got an IP address using DHCP");
-
-
   ////////////Ethernet Listen/////////////
 
   server.begin();
   // Say who we think we are.
   Serial.println(Ethernet.localIP());
- // delay(10);
-
-
-  
 }
- 
 
 //////////BEGIN LOOP//////////////
 void loop()
 {
   time1 = millis();
   control();
- 
+   ////////////RF433 SECTION/////////////////////
+  uint8_t buf[30];
+  uint8_t buflen = sizeof(buf);
+
+  if (driver.recv(buf, &buflen)) {
+    
+Serial.println("RX...");
+
+   tempciel = atof(strtok(buf, ","));
+   temp_ambient = atof(strtok(NULL, ","));
+   detectpluie = atof(strtok(NULL, ","));
+   temp = atof(strtok(NULL, ","));
+   sqmval = atof(strtok(NULL, ","));
+//   counter = atol(strtok(NULL, ","));
+  }
+
+  //////////////////////////////////////////////////////
  
  //////////////SERIAL INPUT /////////////////
    static char bufserial[10];
   if (readline(Serial.read(), bufserial, 10) > 0) {
-    Serial.println(bufserial);
     String valSerial = bufserial;
+    Serial.print(valSerial);
    //Open roof if data received = ouvrir, time less than 50sec and limit switch not activated
-  if (valSerial == "OUVRIR" && switchOuvert == HIGH ) { 
+   if (valSerial == "OUVRIR" && switchOuvert == HIGH ) { 
       timemotor = millis() + 28000;
       sensouverture = true;
       Serial.println("j ouvre");
@@ -210,27 +165,22 @@ void loop()
       digitalWrite(RELAY2,HIGH);
       control();
   
-  
   }
   //Close roof if data received = fermer, time less than 50sec and limit switch not activated
-  else if (valSerial == "FERMER" && switchFerme == HIGH) {
+   else if (valSerial == "FERMER" && switchFerme == HIGH) {
       timemotor = millis() + 28000;
       sensfermeture = true;
       Serial.println("je ferme");
       digitalWrite(RELAY1,HIGH);
       digitalWrite(RELAY2,LOW);
       control();
-    
-  
+ 
   }
-      else  if (valSerial == "STOP") {
+      else   if (valSerial == "STOP") {
       stop();
-
-
     }
     //Give status of the roof
-         else if (valSerial == "ETAT") {
-             
+         else  if (valSerial == "ETAT") {
         if (switchFerme == LOW) {
           Serial.println("FERME$");
         }
@@ -247,8 +197,7 @@ void loop()
           Serial.println("UNKNOWN$");
         }
      
-      }
-    
+      }  
   }
 //////////////////////////////////////////
 
@@ -274,26 +223,6 @@ void loop()
     digitalWrite(RELAY2,LOW);
   } 
 
-
-
-  ////////////RF433 SECTION/////////////////////
-  uint8_t buf[RH_ASK_MAX_MESSAGE_LEN];
-  uint8_t buflen = sizeof(buf);
-
-  if (driver.recv(buf, &buflen)) {
-    
-Serial.println("jerecois");
-    // Message with a good checksum received, dump it.
-   // driver.printBuffer("Got:", buf, buflen);
-  
-    if (buflen == 24) {
-            gotdata = true;
-      memcpy(&myData, buf, sizeof(myData));
-    }
-  }
-
-  //////////////////////////////////////////////////////
-
   /////////////PREPARE DATA TO BE SENT TO INTERNET/////////////////
   //Initialization of variables received by RF433
   char str_temp1[6];
@@ -302,24 +231,14 @@ Serial.println("jerecois");
   char str_temp4[6];
   char str_temp5[6];
 
-  //Size of data received
-  //char combinedArray[84];
-
-  //Affect variables to values received by the RF433
-  double tempcield = myData.tempciel;
-  double detecpluid = myData.detectpluie;
-  double tempambient = myData.temp_ambient;
-  double tempsol = myData.temp;
-  double mysqm = myData.sqmval;
-  
  
   //Convert variables in String
   // 4 is mininum width, 2 is precision; float value is copied onto str_temp
-  dtostrf(tempcield, 5, 2, str_temp1);
-  dtostrf(detecpluid, 5, 2, str_temp2);
-  dtostrf(tempambient, 5, 2, str_temp3);
-  dtostrf(tempsol, 5, 2, str_temp4);
-  dtostrf(mysqm, 5, 2, str_temp5);
+  dtostrf(tempciel, 5, 2, str_temp1);
+  dtostrf(detectpluie, 5, 2, str_temp2);
+  dtostrf(temp_ambient, 5, 2, str_temp3);
+  dtostrf(temp, 5, 2, str_temp4);
+  dtostrf(sqmval, 5, 2, str_temp5);
  
   //Define attributes to send via Ethernet
   char myData1[] = "temperatureciel=";
@@ -329,16 +248,16 @@ Serial.println("jerecois");
   char myData5[] = "&sqmaverage=";
 
   //Concatenate all variables + attributes to be sent via Ethernet
+//  Serial.println(sizeof(myData1));
   char combinedArray[sizeof(myData1) + sizeof(str_temp1) +sizeof(myData2) + sizeof(str_temp2) + sizeof(myData3) + sizeof(str_temp3)+ sizeof(myData4) + sizeof(str_temp4) +sizeof(myData5) + sizeof(str_temp5) + 1];
   sprintf(combinedArray, "%s%s%s%s%s%s%s%s%s%s", myData1, str_temp1, myData2,str_temp2,myData3,str_temp3,myData4,str_temp4,myData5,str_temp5);
 
   ///////////////////////////////////////////////////
 
 ////////SAFETY CONTROL IF RECEIVED RF DATA//////////////
- //if  (gotdata) {
-    
+
     //If Value received  safe, then safety = safe
-         if (((mysqm <= 2) && (detecpluid < 1) && (tempcield <= -10)) && ((switchFerme == HIGH)&&(switchOuvert == LOW))) {
+         if (((sqmval <= 2) && (detectpluie < 1) && (tempciel <= -10)) && ((switchFerme == HIGH)&&(switchOuvert == LOW))) {
    safebool = true;
    char safety[]="safety=safe";
  //  gotdata = false;
@@ -348,16 +267,13 @@ Serial.println("jerecois");
   else  {
    char safety[]="safety=nosafe";
    safebool = false;
- //   gotdata = false;
+ 
     }
-    //  Serial.println(safety);
-  
- // }
 
   if (safestate != safebool) {
   //   Serial.println("different");
       safestate = safebool;
-      iptrans(post2, safety);
+     iptrans(post2, safety);
   }
 
   //////////////////UPDATE SQL DATABASE WITH SENSORS DATA///////////////////////
@@ -367,13 +283,11 @@ Serial.println("jerecois");
     //Send Every 2 minutes
 
     time2 += 120000;
-    if (mysqm != 0 && detecpluid !=0) {
+    if (sqmval != 0 && detectpluie !=0) {
         Serial.println("ca envoie");
         iptrans(post, combinedArray);
     }
   }
-
-
 }
 
 ////////////END LOOP/////////////////////
