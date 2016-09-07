@@ -3,7 +3,10 @@
 //May 31st 2016
 //Revision 3.2
 //June 1st 2016
-//Add Average for the sky light measure and change the LCD prints
+//Add Average for the sky light measure and change the LCD printsj
+//Revision 4.0
+//Sep 07th 2016
+//Total rewrite of the code for data send
 
 
 //Library definitions
@@ -293,7 +296,8 @@ dtostrf(humid, 5, 2, str_humid);
   //Send data out of RF433
 
  char DatatoSend[60];
- sprintf(DatatoSend, "%s,%s,%s,%s,%s,%s.",str_temp_ciel,str_temp_ambient,str_humid,str_tempsol,str_MsqmMoy,str_counter);
+ sprintf(DatatoSend, "%s,%s,%s,%s,%s,%s",str_temp_ciel,str_temp_ambient,str_humid,str_tempsol,str_MsqmMoy,str_counter);
+ //Serial.println(DatatoSend);
  // memcpy(tx_buf, DatatoSend, sizeof(DatatoSend) );
   byte zize=sizeof(DatatoSend);
 
@@ -373,7 +377,7 @@ void defaultlcd() {
   lcd.setCursor(0, 0);
   lcd.print("WINCH SKYBOX");
   lcd.setCursor(0, 1);
-  lcd.print("V3.2 JUIN 2016");          
+  lcd.print("V4.0 JUIN 2016");          
 }
 //////////////////////////////////////
 
