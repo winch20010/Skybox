@@ -54,15 +54,16 @@ unsigned long time1 = 0;
 unsigned long time2 = 60000 ;
 
 //Define Values to send via RF433
-struct dataStruct{
+//struct dataStruct{
   float temp_ciel ; 
   float temp_ambient;
   float humid;
-  float temp;
-  float sqmval;
+  float tempsol;
+ // float sqmval;
   unsigned long counter;
-}myData;
-byte tx_buf[sizeof(myData)] = {0};
+//}myData;
+//byte tx_buf[sizeof(myData)] = {0};
+
 
 
 //Define interrupt to measure light sensitivity
@@ -77,6 +78,14 @@ unsigned long timefreq;
 const byte interruptPin = 2;
 unsigned long pulse_cnt = 0;
 
+ char str_temp_ciel[11];
+ char str_tempsol[11];
+ char str_temp_ambient[11];
+ char str_Msqm[11];
+ char str_MsqmMoy[11];
+ char str_counter[32];
+ char str_humid[11];
+ 
 ///////////START OF SETUP//////////////////////
 
 void setup() {
@@ -145,7 +154,7 @@ void loop() {
       for (int i = 0 ; i < 10 ; i++){
     sum += msqmaver[i] ;
     MsqmMoy = sum / 10;
-    myData.sqmval = MsqmMoy;
+    //sqmval = MsqmMoy;
     }
     sum = 0;
       incaver = 0 ;
@@ -172,7 +181,7 @@ void loop() {
   //  Serial.println();
 
    
-        myData.temp = temp;
+        tempsol = temp;
   }
 
 
@@ -180,15 +189,24 @@ void loop() {
  // Serial.print("Ambient = "); Serial.print(mlx.readAmbientTempC()); 
  // Serial.print("*C\tObject = "); Serial.print(mlx.readObjectTempC());  Serial.write(176);  Serial.write('C');Serial.println();
   
-  myData.temp_ciel=mlx.readObjectTempC();
-  myData.temp_ambient = mlx.readAmbientTempC();
+  temp_ciel=mlx.readObjectTempC();
+  temp_ambient = mlx.readAmbientTempC();
+  
 
 
+
+  
   //Rain sensor reading
   float humivalue = analogRead(A0); 
-  myData.humid = map(humivalue, 0, 1024, 100, 0); 
+  humid = map(humivalue, 0, 1024, 100, 0); 
  //// Serial.println(myData.humid);
-
+ 
+  dtostrf(temp_ciel, 5, 2, str_temp_ciel);
+  dtostrf(temp_ambient, 5, 2, str_temp_ambient);
+dtostrf(tempsol, 5, 2, str_tempsol);
+dtostrf(Msqm, 5, 2, str_Msqm);
+dtostrf(MsqmMoy, 5, 2, str_MsqmMoy);
+dtostrf(humid, 5, 2, str_humid);
 
   //LCD Screen reading and actions
   buttonState1 = digitalRead(buttonPin1);
@@ -223,8 +241,8 @@ void loop() {
       lcd.setCursor(0, 1);
       // print the number of seconds since reset:
       // lcd.print(myData.temp);
-      dtostrf(myData.temp, 5, 2, convert);
-      sprintf(valuetoprint, "%s%s", convert, SerialDegree);
+   //   dtostrf(tempsol, 5, 2, convert);
+      sprintf(valuetoprint, "%s%s", str_tempsol, SerialDegree);
       lcd.print(valuetoprint);
       break;
 
@@ -233,8 +251,8 @@ void loop() {
       lcd.setCursor(0, 0);
       lcd.print("Temp Ambiente");
       lcd.setCursor(0, 1);
-      dtostrf(myData.temp_ambient, 5, 2, convert);
-      sprintf(valuetoprint, "%s%s", convert, SerialDegree);
+ //     dtostrf(temp_ambient, 5, 2, convert);
+      sprintf(valuetoprint, "%s%s", str_temp_ambient, SerialDegree);
       lcd.print(valuetoprint);
       break;
 
@@ -243,8 +261,8 @@ void loop() {
       lcd.setCursor(0, 0);
       lcd.print("Temp Ciel");
       lcd.setCursor(0, 1);
-      dtostrf(myData.temp_ciel, 5, 2, convert);
-      sprintf(valuetoprint, "%s%s", convert, SerialDegree);
+ //     dtostrf(temp_ciel, 5, 2, convert);
+      sprintf(valuetoprint, "%s%s", str_temp_ciel, SerialDegree);
       lcd.print(valuetoprint);
       break;
 
@@ -253,12 +271,12 @@ void loop() {
       lcd.setCursor(0, 0);
       lcd.print("SQM    Average");
       lcd.setCursor(0, 1);
-      dtostrf(Msqm, 5, 2, convert);
-      sprintf(valuetoprint, "%s", convert );
+   //   dtostrf(Msqm, 5, 2, convert);
+      sprintf(valuetoprint, "%s", str_Msqm );
       lcd.print(valuetoprint);
       lcd.setCursor(8, 1);
-      dtostrf(MsqmMoy, 5, 2, convert);      
-      sprintf(valuetoprint2, "%s", convert );
+   //   dtostrf(MsqmMoy, 5, 2, convert);      
+      sprintf(valuetoprint2, "%s", str_MsqmMoy );
       lcd.print(valuetoprint2);
       break;
 
@@ -274,13 +292,16 @@ void loop() {
 
   //Send data out of RF433
 
-  memcpy(tx_buf, &myData, sizeof(myData) );
-  byte zize=sizeof(myData);
+ char DatatoSend[60];
+ sprintf(DatatoSend, "%s,%s,%s,%s,%s,%s.",str_temp_ciel,str_temp_ambient,str_humid,str_tempsol,str_MsqmMoy,str_counter);
+ // memcpy(tx_buf, DatatoSend, sizeof(DatatoSend) );
+  byte zize=sizeof(DatatoSend);
 
-  driver.send((uint8_t *)tx_buf, zize);
+  driver.send((uint8_t *)DatatoSend, zize);
   driver.waitPacketSent(300);
  
-  myData.counter++;
+  counter++;
+  ltoa(counter, str_counter, 10);
   //   delay(600);
 
 }
