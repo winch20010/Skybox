@@ -108,7 +108,7 @@ void setup()
   if (!driver.init())
     Serial.println("init failed");
     
-  Serial.println("Version 5.3");
+  Serial.println("Version 5.4");
   
   Serial.println("setup()");
   
