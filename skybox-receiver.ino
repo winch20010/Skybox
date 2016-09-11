@@ -1,4 +1,7 @@
 //SkyBox Receiver  - Sebastien Burfin
+//Revision 5.2
+//September 06th 2016
+//Total rewrite Serial event part - Miss now Got data from transmitter...
 //Revision 5.3
 //September 07th 2016
 //Rewrite Serial event with new strategy code
@@ -65,6 +68,7 @@ int minutes = 90;
 unsigned long time1 = millis();
 unsigned long time2 = millis() + 120000;
 unsigned long timemotor;
+unsigned long timerecv = millis() + 60000;
 
 #define RELAY1  6                       
 #define RELAY2  5
@@ -137,17 +141,19 @@ void loop()
   uint8_t buf[30];
   uint8_t buflen = sizeof(buf);
 
+if(timerecv < millis()){
   if (driver.recv(buf, &buflen)) {
-    
+    timerecv = millis() + 60000;
 Serial.println("RX...");
 
-   tempciel = atof(strtok(buf, ","));
+   tempciel = atof(strtok((char*)buf, ","));
    temp_ambient = atof(strtok(NULL, ","));
    detectpluie = atof(strtok(NULL, ","));
    temp = atof(strtok(NULL, ","));
    sqmval = atof(strtok(NULL, ","));
 //   counter = atol(strtok(NULL, ","));
   }
+}
 
   //////////////////////////////////////////////////////
  
@@ -206,6 +212,7 @@ Serial.println("RX...");
   // check which pushbutton is pressed.
 
   if (buttonClose == HIGH && buttonOpen == LOW && switchOuvert == HIGH) {
+          timemotor = millis() + 28000;
     button = true;
     sensouverture = true;
     //Hard button open roof
@@ -215,6 +222,7 @@ Serial.println("RX...");
  
     
   } else if (buttonClose == LOW && buttonOpen == HIGH && switchFerme == HIGH) {
+          timemotor = millis() + 28000;
     button = true;
     sensfermeture = true;
     //Hard button close roof
@@ -344,8 +352,8 @@ void iptrans(char post[], char combinedArray[]) {
  
     ///////////////ETHERNET init//////////////////////
 Serial.println("j envoie ca : ");
-Serial.println(post);
-Serial.println(combinedArray);
+//Serial.println(post);
+//Serial.println(combinedArray);
 
   EthernetClient client = server.available();
  
