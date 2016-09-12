@@ -1,35 +1,19 @@
 //SkyBox Receiver  - Sebastien Burfin
-//Revision 3.1
-//June 1st 2016
-//Add Average for the sky light measure send it to intranet
-//Revision 3.2
-//June 2nd 2016
-//Code cleanup
-//Revision 3.3
-//June 17 2016
-//Add revision in serial output
-//Revision 3.4
-//June 18 2016
-//Add motor protection with switches
-//Revision 3.5
-//August 8th 2016
-//Add Serial control for roof
-//Revision 3.6
-//August 8th 2016
-//Bug correction serial
-//Revision 3.7
-//August 11th 2016
-//Full rewrite of Serial + button events
-//Revision 3.8
-//August 11th 2016
-//All working except serial string reception
-//Revision 3.9
-//August 12th 2016
-//Use analog pin instead of digital 0 for end course switches
-//Revision 4.0
-//August 12th 2016
-//Full revision of serial emergency stop procedure
- 
+//Revision 5.2
+//September 06th 2016
+//Total rewrite Serial event part - Miss now Got data from transmitter...
+//Revision 5.3
+//September 07th 2016
+//Rewrite Serial event with new strategy code
+//Fix issue with combinedArray size buffer overflow
+//Revision 5.4
+//September 07th 2016
+//Fix memory issue which was causing most of the problem on the ardui ...
+//Revision 5.5
+//September 12th 2016
+//TEST VERSION - serial event as serial input
+
+
 #include <RH_ASK.h>
 #include <SPI.h> // Not actualy used but needed to compile
 #include <Ethernet.h>
@@ -66,14 +50,11 @@ RH_ASK driver(2000, 8);
 
 //////////////VARIABLES////////////////////////////////
 
-struct dataStruct{
   double tempciel ;
   double temp_ambient; 
   double detectpluie;
   double temp;
   double sqmval;
-  unsigned long counter;
-}myData;
 
 //RTC_DS1307 RTC;
 //PUSHBUTTONS
@@ -88,26 +69,30 @@ int switchOuvert = 0;
 int switchFerme = 0; 
 int minutes = 90;
 
-
-unsigned long time1;
-unsigned long time2;
+unsigned long time1 = millis();
+unsigned long time2 = millis() + 120000;
 unsigned long timemotor;
+unsigned long timerecv = millis() + 60000;
 
 #define RELAY1  6                       
 #define RELAY2  5
 
 char temperature[6];
-char combinedArray;
+char post[] = "POST /observatory/add.php HTTP/1.1";
+char post2[] = "POST /observatory/safety.php HTTP/1.1";
 
 String data1 = "";
-String valSerial;
+//String valSerial;
 
 boolean button = false;
 boolean sensouverture = false;
 boolean sensfermeture = false;
+//boolean gotdata = false;
 
-String inputString = "";         // a string to hold incoming data
-boolean stringComplete = false;  // whether the string is complete
+
+char safety[] = "safety=nosafe";
+boolean safestate = true;
+ boolean safebool = false;
 
 //////////////////////////////////////////////
 
@@ -125,13 +110,16 @@ void setup()
   digitalWrite(5, HIGH);
   digitalWrite(6, HIGH);
 
-  
   Serial.begin(9600); // Debugging only
-  Serial.flush();
-  Serial.println("Version 4.0");
+
+    /////////////Radio Frequency//////////////
+  if (!driver.init())
+    Serial.println("init failed");
+    
+  Serial.println("Version 5.4");
   
   Serial.println("setup()");
- 
+  
     ///////////////ETHERNET//////////////////
     if (Ethernet.begin(mac) == 0) {
     // if DHCP fails, start with a hard-coded address:
@@ -141,34 +129,90 @@ void setup()
   }
   else
     Serial.println("got an IP address using DHCP");
-
-  /////////////Radio Frequency//////////////
-  if (!driver.init())
-    Serial.println("init failed");
-
   ////////////Ethernet Listen/////////////
 
   server.begin();
   // Say who we think we are.
   Serial.println(Ethernet.localIP());
-  delay(1000);
-
-  
 }
- 
 
 //////////BEGIN LOOP//////////////
 void loop()
 {
   time1 = millis();
   control();
+   ////////////RF433 SECTION/////////////////////
+  uint8_t buf[30];
+  uint8_t buflen = sizeof(buf);
 
-  //////////BUTTONS + RELAYS/////////////
+if(timerecv < millis()){
+  if (driver.recv(buf, &buflen)) {
+    timerecv = millis() + 60000;
+Serial.println("RX...");
 
+   tempciel = atof(strtok((char*)buf, ","));
+   temp_ambient = atof(strtok(NULL, ","));
+   detectpluie = atof(strtok(NULL, ","));
+   temp = atof(strtok(NULL, ","));
+   sqmval = atof(strtok(NULL, ","));
+//   counter = atol(strtok(NULL, ","));
+  }
+}
 
-  //Serial Roof command
+  //////////////////////////////////////////////////////
+ 
+ //////////////SERIAL INPUT /////////////////
+ //  static char bufserial[10];
+ // if (readline(Serial.read(), bufserial, 10) > 0) {
+//    String valSerial = bufserial;
+//    Serial.print(valSerial);
+//   //Open roof if data received = ouvrir, time less than 50sec and limit switch not activated
+//   if (valSerial == "OUVRIR" && switchOuvert == HIGH ) { 
+//      timemotor = millis() + 28000;
+//      sensouverture = true;
+//      Serial.println("j ouvre");
+//      digitalWrite(RELAY1,LOW);
+//      digitalWrite(RELAY2,HIGH);
+//      control();
+//  
+//  }
+//  //Close roof if data received = fermer, time less than 50sec and limit switch not activated
+//   else if (valSerial == "FERMER" && switchFerme == HIGH) {
+//      timemotor = millis() + 28000;
+//      sensfermeture = true;
+//      Serial.println("je ferme");
+//      digitalWrite(RELAY1,HIGH);
+//      digitalWrite(RELAY2,LOW);
+//      control();
+// 
+//  }
+//      else   if (valSerial == "STOP") {
+//      stop();
+//    }
+//    //Give status of the roof
+//         else  if (valSerial == "ETAT") {
+//        if (switchFerme == LOW) {
+//          Serial.println("FERME$");
+//        }
+//        else if (switchOuvert == LOW) {
+//          Serial.println("OUVERT$");
+//        }
+//        else if (sensouverture) {
+//          Serial.println("OUVERTURE$");
+//        }
+//        else if (sensfermeture) {
+//          Serial.println("FERMETURE$");
+//        }
+//        else {
+//          Serial.println("UNKNOWN$");
+//        }
+     
+//      }  
+//}
+//////////////////////////////////////////
+///////SERIAL INPUT CALLED BY SERIAL EVENT FUNCTION /////////////
 
-  if (stringComplete) {
+if (stringComplete) {
 
  
  //   Serial.println("info recu");
@@ -201,9 +245,14 @@ void loop()
 
     }
   }
+
+
+  //////////BUTTONS + RELAYS/////////////
+
   // check which pushbutton is pressed.
 
   if (buttonClose == HIGH && buttonOpen == LOW && switchOuvert == HIGH) {
+          timemotor = millis() + 28000;
     button = true;
     sensouverture = true;
     //Hard button open roof
@@ -213,6 +262,7 @@ void loop()
  
     
   } else if (buttonClose == LOW && buttonOpen == HIGH && switchFerme == HIGH) {
+          timemotor = millis() + 28000;
     button = true;
     sensfermeture = true;
     //Hard button close roof
@@ -221,54 +271,22 @@ void loop()
     digitalWrite(RELAY2,LOW);
   } 
 
-  ///////////////ETHERNET//////////////////////
-
-  EthernetClient client = server.available();
- 
-  /////////////////////////////////////////////
-
-  ////////////RF433 SECTION/////////////////////
-  uint8_t buf[RH_ASK_MAX_MESSAGE_LEN];
-  uint8_t buflen = sizeof(buf);
-
-  if (driver.recv(buf, &buflen)) {
-    int i;
-
-    // Message with a good checksum received, dump it.
-    driver.printBuffer("Got:", buf, buflen);
-    if (buflen == 24) {
-      memcpy(&myData, buf, sizeof(myData));
-    }
-  }
-
-  //////////////////////////////////////////////////////
-
   /////////////PREPARE DATA TO BE SENT TO INTERNET/////////////////
   //Initialization of variables received by RF433
-  char str_temp[6];
+  char str_temp1[6];
   char str_temp2[6];
   char str_temp3[6];
   char str_temp4[6];
   char str_temp5[6];
 
-  //Size of data received
-  char combinedArray[84];
-
-  //Affect variables to values received by the RF433
-  double tempcield = myData.tempciel;
-  double detecpluid = myData.detectpluie;
-  double tempambient = myData.temp_ambient;
-  double tempsol = myData.temp;
-  double mysqm = myData.sqmval;
-
-
+ 
   //Convert variables in String
   // 4 is mininum width, 2 is precision; float value is copied onto str_temp
-  dtostrf(tempcield, 5, 2, str_temp);
-  dtostrf(detecpluid, 5, 2, str_temp2);
-  dtostrf(tempambient, 5, 2, str_temp3);
-  dtostrf(tempsol, 5, 2, str_temp4);
-  dtostrf(mysqm, 5, 2, str_temp5);
+  dtostrf(tempciel, 5, 2, str_temp1);
+  dtostrf(detectpluie, 5, 2, str_temp2);
+  dtostrf(temp_ambient, 5, 2, str_temp3);
+  dtostrf(temp, 5, 2, str_temp4);
+  dtostrf(sqmval, 5, 2, str_temp5);
  
   //Define attributes to send via Ethernet
   char myData1[] = "temperatureciel=";
@@ -278,40 +296,46 @@ void loop()
   char myData5[] = "&sqmaverage=";
 
   //Concatenate all variables + attributes to be sent via Ethernet
-
-  sprintf(combinedArray, "%s%s%s%s%s%s%s%s%s%s", myData1, str_temp, myData2,str_temp2,myData3,str_temp3,myData4,str_temp4,myData5,str_temp5);
+//  Serial.println(sizeof(myData1));
+  char combinedArray[sizeof(myData1) + sizeof(str_temp1) +sizeof(myData2) + sizeof(str_temp2) + sizeof(myData3) + sizeof(str_temp3)+ sizeof(myData4) + sizeof(str_temp4) +sizeof(myData5) + sizeof(str_temp5) + 1];
+  sprintf(combinedArray, "%s%s%s%s%s%s%s%s%s%s", myData1, str_temp1, myData2,str_temp2,myData3,str_temp3,myData4,str_temp4,myData5,str_temp5);
 
   ///////////////////////////////////////////////////
 
-  //////////////////SEND ETHERNET///////////////////////
+////////SAFETY CONTROL IF RECEIVED RF DATA//////////////
+
+    //If Value received  safe, then safety = safe
+         if (((sqmval <= 2) && (detectpluie < 1) && (tempciel <= -10)) && ((switchFerme == HIGH)&&(switchOuvert == LOW))) {
+   safebool = true;
+   char safety[]="safety=safe";
+ //  gotdata = false;
+         }
+         
+    //If value receifed not safe, then safety = nosafe
+  else  {
+   char safety[]="safety=nosafe";
+   safebool = false;
+ 
+    }
+
+  if (safestate != safebool) {
+  //   Serial.println("different");
+      safestate = safebool;
+     iptrans(post2, safety);
+  }
+
+  //////////////////UPDATE SQL DATABASE WITH SENSORS DATA///////////////////////
 
   if (time1 >= time2) {
 
     //Send Every 2 minutes
 
     time2 += 120000;
-    Serial.println("ca envoie");
-
-    if (client.connect("192.168.74.5",83)) { // REPLACE WITH YOUR SERVER ADDRESS
- 
-      client.println("POST /observatory/add.php HTTP/1.1"); 
-      client.println("Host: 192.168.74.5"); // SERVER ADDRESS HERE TOO
-      client.println("Content-Type: application/x-www-form-urlencoded"); 
-      client.print("Content-Length: "); 
-      client.println(strlen(combinedArray)); 
-      client.println(); 
-      client.print(combinedArray); 
-      client.println();
-   
-    } 
-
-    //Disconnect
-
-    if (client.connected()) { 
-      client.stop();  // DISCONNECT FROM THE SERVER
+    if (sqmval != 0 && detectpluie !=0) {
+        Serial.println("ca envoie");
+        iptrans(post, combinedArray);
     }
   }
-
 }
 
 ////////////END LOOP/////////////////////
@@ -327,12 +351,6 @@ void control(){
   switchOuvert = digitalRead(toitouvert);
   switchFerme = digitalRead(toitferme);
 
-  
-
-
- // if (switchOuvert == 0) {
- //   Serial.println("c est ouvert ...");
- // }
 
   if (buttonClose == LOW && buttonOpen == LOW ) {
    
@@ -349,13 +367,15 @@ void control(){
     stop();
   }
  
-else if ((timemotor < millis()) && inputString != "" ) {
+else if ((timemotor < millis()) && ((sensfermeture) || (sensouverture))) {
     Serial.println("TEMPS PASSE");
     stop();
   }
   
 }
+////////////////////////////////////////////////////
 
+///////FUNCTION STOP - STOP MOTORS ////////////////
 void stop() {
     Serial.println("je stop");
     digitalWrite(RELAY1,HIGH);
@@ -363,10 +383,68 @@ void stop() {
     button = false;
     sensouverture = false;
     sensfermeture = false;
-    inputString = "";
-    stringComplete = false;
+//    valSerial = "";
 }
 
+
+/////////ETHERNET SEND DATA CONTROL TO NAS////////////
+void iptrans(char post[], char combinedArray[]) {
+ 
+    ///////////////ETHERNET init//////////////////////
+Serial.println("j envoie ca : ");
+//Serial.println(post);
+//Serial.println(combinedArray);
+
+  EthernetClient client = server.available();
+ 
+  /////////////////////////////////////////////
+     if (client.connect("192.168.74.5",83)) { // REPLACE WITH YOUR SERVER ADDRESS
+ 
+      client.println(post); 
+      client.println("Host: 192.168.74.5"); // SERVER ADDRESS HERE TOO
+      client.println("Content-Type: application/x-www-form-urlencoded"); 
+      client.print("Content-Length: "); 
+      client.println(strlen(combinedArray)); 
+      client.println(); 
+      client.print(combinedArray); 
+      client.println();
+   
+    } 
+    //Disconnect
+
+    if (client.connected()) { 
+      client.stop();  // DISCONNECT FROM THE SERVER
+    }
+}
+
+///////////INPUT SERIAL RECEIVED////////////////////////
+int readline(int readch, char *bufserial, int len)
+{
+  static int pos = 0;
+  int rpos;
+
+  if (readch > 0) {
+    switch (readch) {
+      case '\n': // Ignore new-lines
+        break;
+      case '$': // Return on CR
+        rpos = pos;
+        pos = 0;  // Reset position index ready for next time
+        return rpos;
+      default:
+        if (pos < len-1) {
+          bufserial[pos++] = readch;
+          bufserial[pos] = 0;
+        }
+    }
+  }
+  // No end of line has been found, so return -1.
+  return -1;
+}
+///////////////////////////////////////////////////
+
+///////////2nd method for serial input/////////////
+////BECAREFUL --  IF NOT COMMENTED OUT, THEN PRIORITIZE ON THE PREVIOUS FUNCTION////
 void serialEvent() {
   while (Serial.available()) {
     // get the new byte:
@@ -384,18 +462,26 @@ void serialEvent() {
       }
       else if (valSerial == "ETAT$") {
              
-	      if (switchFerme == LOW) {
-    	    Serial.println("FERME");
+        if (switchFerme == LOW) {
+          Serial.println("FERME$");
         }
-      	else if (switchOuvert == LOW) {
-        	Serial.println("OUVERT");
-      	}
-      	else {
-	        Serial.println("UNKNOWN");
-    	  }
+        else if (switchOuvert == LOW) {
+          Serial.println("OUVERT$");
+        }
+        else if (sensouverture) {
+          Serial.println("OUVERTURE$");
+        }
+        else if (sensfermeture) {
+          Serial.println("FERMETURE$");
+        }
+        else {
+          Serial.println("UNKNOWN$");
+        }
       }
       
       valSerial = "";
     }
   }
 }
+
+/////////////////////////////////////////////////////////
