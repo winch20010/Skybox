@@ -56,8 +56,8 @@ RH_ASK driver(2000, 8);
 //PUSHBUTTONS
 const int buttonPin1 = 2;
 const int buttonPin2 = 7;
-const int toitferme = 16;
-const int toitouvert = 17;
+const int toitferme = 56;
+const int toitouvert = 57;
 
 int buttonClose = 0; 
 int buttonOpen = 0; 
